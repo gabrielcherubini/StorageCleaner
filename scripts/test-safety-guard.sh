@@ -71,6 +71,9 @@ expect fail analysis-write-resource StorageCleaner/Analysis/X.swift 'PHAssetReso
 expect fail core-duplicates-write StorageCleanerCore/Sources/StorageCleanerCore/Duplicates/X.swift 'FileManager.default.createFile(atPath: p, contents: d)'
 expect fail core-classifiers-write StorageCleanerCore/Sources/StorageCleanerCore/Classifiers/X.swift 'try data.write(to: url)'
 expect pass core-classifiers-read StorageCleanerCore/Sources/StorageCleanerCore/Classifiers/X.swift 'let text = try String(contentsOf: url)'
+expect fail review-ui-write StorageCleaner/Review/X.swift 'try FileManager.default.moveItem(at: a, to: b)'
+expect fail review-ui-trash StorageCleaner/Review/X.swift 'try FileManager.default.trashItem(at: url, resultingItemURL: nil)'
+expect pass review-ui-calls-service StorageCleaner/Review/X.swift 'await trash.moveToTrash(plan, confirmation: c, reasons: r)'
 expect fail analysis-partial-read-download StorageCleaner/Analysis/X.swift 'options.isNetworkAccessAllowed = true'
 expect pass analysis-partial-read StorageCleaner/Analysis/X.swift 'manager.cancelDataRequest(id)'
 

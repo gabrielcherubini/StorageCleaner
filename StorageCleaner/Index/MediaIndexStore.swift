@@ -104,6 +104,17 @@ actor MediaIndexStore {
         return try modelContext.fetch(descriptor).compactMap { try? decoder.decode(MediaItem.self, from: $0.payload) }
     }
 
+    /// Items of at least `minimumBytes`, heaviest first.
+    func largeItems(minimumBytes: Int64, limit: Int = 2_000) throws -> [MediaItem] {
+        var descriptor = FetchDescriptor<IndexedMedia>(
+            predicate: #Predicate { $0.byteSize >= minimumBytes },
+            sortBy: [SortDescriptor(\.byteSize, order: .reverse)]
+        )
+        descriptor.fetchLimit = limit
+        let decoder = JSONDecoder()
+        return try modelContext.fetch(descriptor).compactMap { try? decoder.decode(MediaItem.self, from: $0.payload) }
+    }
+
     func summary(heaviestLimit: Int = 50) throws -> LibrarySummary {
         var descriptor = FetchDescriptor<IndexedMedia>()
         descriptor.propertiesToFetch = [\.key, \.kindRaw, \.byteSize, \.isProtected]

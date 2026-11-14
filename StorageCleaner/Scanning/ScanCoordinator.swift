@@ -15,6 +15,7 @@ final class ScanCoordinator {
     }
 
     private static let allowDownloadsKey = "allowICloudDownloadsForAnalysis"
+    private static let decisionLogKey = "keepDecisionLog"
 
     private(set) var progress: Progress?
     private(set) var summary: LibrarySummary = .empty
@@ -35,7 +36,15 @@ final class ScanCoordinator {
         UserDefaults.standard.set(allowed, forKey: Self.allowDownloadsKey)
     }
 
-    @ObservationIgnored private let store: MediaIndexStore
+    /// Off by default: when on, each confirmed trash action is appended to a local JSON file.
+    private(set) var keepsDecisionLog: Bool = UserDefaults.standard.bool(forKey: ScanCoordinator.decisionLogKey)
+
+    func setKeepsDecisionLog(_ enabled: Bool) {
+        keepsDecisionLog = enabled
+        UserDefaults.standard.set(enabled, forKey: Self.decisionLogKey)
+    }
+
+    @ObservationIgnored let store: MediaIndexStore
     @ObservationIgnored private let updater: IndexUpdater
     @ObservationIgnored private var task: Task<Void, Never>?
     @ObservationIgnored private var lastSummaryRefresh = Date.distantPast
@@ -122,6 +131,32 @@ final class ScanCoordinator {
 
     func dismissErrors() {
         errors.removeAll()
+    }
+
+    func report(error message: String) {
+        errors.append(message)
+    }
+
+    /// Items over the large-file threshold, heaviest first.
+    func largeFiles() async -> [MediaItem] {
+        (try? await store.largeItems(minimumBytes: LibrarySummary.defaultLargeFileThreshold)) ?? []
+    }
+
+    /// The heaviest indexed items, for the "Heaviest items" review screen.
+    func heaviestItems(limit: Int = 500) async -> [MediaItem] {
+        (try? await store.heaviestItems(limit: limit)) ?? []
+    }
+
+    /// Drops items that were moved to Recently Deleted / Trash from the current results. Their
+    /// index rows are already gone; the next scan confirms it.
+    func removeTrashed(_ locations: Set<MediaLocation>) async {
+        guard !locations.isEmpty else { return }
+        duplicates?.groups = duplicates?.groups.compactMap { $0.removing(locations) } ?? []
+        if var report = classifications {
+            report.reviews = report.reviews.compactMap { $0.removing(locations) }
+            classifications = report
+        }
+        await refreshSummary()
     }
 
     // MARK: Scanning
