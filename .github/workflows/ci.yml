@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  safety-guard:
+    name: Safety guard (no permanent deletion)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Guard self-test
+        run: scripts/test-safety-guard.sh
+      - name: Only TrashService may remove media, and only to Trash / Recently Deleted
+        run: scripts/check-no-permanent-delete.sh
+
+  core-linux:
+    name: StorageCleanerCore tests (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.2-noble
+    steps:
+      - uses: actions/checkout@v4
+      - name: swift test
+        working-directory: StorageCleanerCore
+        run: swift test --parallel
+
+  apple:
+    name: Build and test (macOS + iOS)
+    needs: safety-guard
+    runs-on: macos-latest
+    env:
+      PROJECT: StorageCleaner.xcodeproj
+      SCHEME: StorageCleaner
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: Xcode project matches project.yml
+        run: |
+          brew install xcodegen
+          xcodegen generate
+          git diff --exit-code -- "$PROJECT" || {
+            echo "::error::StorageCleaner.xcodeproj is out of date. Run 'xcodegen generate' and commit the result."
+            exit 1
+          }
+
+      - name: StorageCleanerCore tests (macOS)
+        working-directory: StorageCleanerCore
+        run: swift test
+
+      - name: Build and test app (macOS)
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project "$PROJECT" -scheme "$SCHEME" \
+            -destination 'platform=macOS' \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Build app and tests (iOS Simulator)
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project "$PROJECT" -scheme "$SCHEME" \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
