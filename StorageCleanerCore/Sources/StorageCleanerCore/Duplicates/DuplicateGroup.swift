@@ -17,6 +17,7 @@ public struct MediaSignatures: Codable, Hashable, Sendable {
     public var duration: TimeInterval?
     public var pixelWidth: Int?
     public var pixelHeight: Int?
+    public var classification: ClassificationSignals?
 
     public init(sourceByteSize: Int64, sourceModificationDate: Date?) {
         self.sourceByteSize = sourceByteSize

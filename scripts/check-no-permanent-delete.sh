@@ -49,6 +49,7 @@ READ_ONLY_DIRS=(
   "StorageCleanerCore/Sources/StorageCleanerCore/Scanning/"
   "StorageCleaner/Analysis/"
   "StorageCleanerCore/Sources/StorageCleanerCore/Duplicates/"
+  "StorageCleanerCore/Sources/StorageCleanerCore/Classifiers/"
 )
 
 SCAN_ONLY_DIRS=(

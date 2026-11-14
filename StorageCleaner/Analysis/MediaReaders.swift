@@ -152,6 +152,18 @@ enum FrameHasher {
 
     /// Hashes of frames at 10%, 50% and 90% of the video.
     static func frameHashes(of asset: AVAsset, duration: Double) async throws -> [UInt64] {
+        try await hashes(of: frames(of: asset, duration: duration))
+    }
+
+    static func hashes(of frames: [CGImage]) throws -> [UInt64] {
+        try frames.map { frame in
+            guard let hash = dHash(of: frame) else { throw AnalysisError.unreadable }
+            return hash
+        }
+    }
+
+    /// Small frames at 10%, 50% and 90% of the video.
+    static func frames(of asset: AVAsset, duration: Double) async throws -> [CGImage] {
         guard duration > 0 else { throw AnalysisError.unreadable }
         let generator = AVAssetImageGenerator(asset: asset)
         generator.appliesPreferredTrackTransform = true
@@ -160,14 +172,13 @@ enum FrameHasher {
         generator.requestedTimeToleranceBefore = tolerance
         generator.requestedTimeToleranceAfter = tolerance
 
-        var hashes: [UInt64] = []
+        var frames: [CGImage] = []
         for fraction in [0.1, 0.5, 0.9] {
             try Task.checkCancellation()
             let (image, _) = try await generator.image(at: CMTime(seconds: duration * fraction, preferredTimescale: 600))
-            guard let hash = dHash(of: image) else { throw AnalysisError.unreadable }
-            hashes.append(hash)
+            frames.append(image)
         }
-        return hashes
+        return frames
     }
 }
 
@@ -175,7 +186,7 @@ enum FrameHasher {
 struct PhotoAnalysis: Sendable {
     let allowDownloads: Bool
 
-    private func asset(_ localIdentifier: String) throws -> PHAsset {
+    func asset(_ localIdentifier: String) throws -> PHAsset {
         guard let asset = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil).firstObject else {
             throw AnalysisError.unreadable
         }
@@ -250,7 +261,7 @@ struct PhotoAnalysis: Sendable {
         throw result.1 ? AnalysisError.cloudOnly : AnalysisError.unreadable
     }
 
-    private static func mapped(_ error: Error) -> Error {
+    static func mapped(_ error: Error) -> Error {
         if let photosError = error as? PHPhotosError, photosError.code == .networkAccessRequired {
             return AnalysisError.cloudOnly
         }
@@ -278,11 +289,11 @@ private final class HashingState: @unchecked Sendable {
 }
 
 #if os(macOS)
-private extension NSImage {
+extension NSImage {
     var cgImageValue: CGImage? { cgImage(forProposedRect: nil, context: nil, hints: nil) }
 }
 #else
-private extension UIImage {
+extension UIImage {
     var cgImageValue: CGImage? { cgImage }
 }
 #endif

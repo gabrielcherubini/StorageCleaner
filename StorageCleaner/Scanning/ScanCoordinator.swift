@@ -24,6 +24,8 @@ final class ScanCoordinator {
     private(set) var lastScanDate: Date?
     /// Results of the last duplicate analysis; cleared when a rescan may have changed the library.
     private(set) var duplicates: DuplicateAnalyzer.Report?
+    /// Results of the last category analysis; cleared like `duplicates`.
+    private(set) var classifications: ClassificationAnalyzer.Report?
 
     /// Off by default: analysis then skips anything whose data is only in iCloud.
     private(set) var allowICloudDownloads: Bool = UserDefaults.standard.bool(forKey: ScanCoordinator.allowDownloadsKey)
@@ -74,6 +76,10 @@ final class ScanCoordinator {
         start { try await $0.runDuplicateAnalysis() }
     }
 
+    func analyzeCategories() {
+        start { try await $0.runClassification() }
+    }
+
     func cancel() {
         task?.cancel()
     }
@@ -107,6 +113,7 @@ final class ScanCoordinator {
             try await store.forgetFolder(id: folder.id)
             folders.removeAll { $0.id == folder.id }
             duplicates = nil
+            classifications = nil
             await refreshSummary()
         } catch {
             errors.append(error.localizedDescription)
@@ -125,7 +132,10 @@ final class ScanCoordinator {
     ) {
         guard task == nil else { return }
         errors.removeAll()
-        if invalidatesDuplicates { duplicates = nil }
+        if invalidatesDuplicates {
+            duplicates = nil
+            classifications = nil
+        }
         task = Task {
             do {
                 try await work(self)
@@ -194,6 +204,15 @@ final class ScanCoordinator {
         }
     }
 
+    private func runClassification() async throws {
+        let source = "Categories"
+        progress = Progress(source: source, done: 0, total: nil)
+        let analyzer = ClassificationAnalyzer(store: store, allowDownloads: allowICloudDownloads)
+        classifications = try await analyzer.run { step, done, total in
+            await self.report(source: source, done: done, total: total, detail: step, refreshSummary: false)
+        }
+    }
+
     private func report(source: String, done: Int, total: Int?, detail: String? = nil, refreshSummary: Bool = true) async {
         guard task != nil, progress?.source == source else { return }
         progress = Progress(source: source, done: done, total: total, detail: detail)
@@ -207,6 +226,9 @@ final class ScanCoordinator {
         if var summary = try? await store.summary() {
             if let duplicates {
                 summary.addSavings(duplicates.groups.flatMap(\.suggestedForRemoval), to: .duplicates)
+            }
+            for review in classifications?.reviews ?? [] {
+                summary.addSavings(review.likelyToDelete.map(\.item), to: review.category)
             }
             self.summary = summary
         }
