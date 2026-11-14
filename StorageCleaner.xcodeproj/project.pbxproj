@@ -1,0 +1,558 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0429CE51CFEB95F150BDEAF8 /* StorageCleanerCore in Frameworks */ = {isa = PBXBuildFile; productRef = 9CA4FA69B0F3495A9F891C76 /* StorageCleanerCore */; };
+		4071D40DD89FEE0C68A664A8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 06FCEEB9BA455E60A51D5C54 /* Assets.xcassets */; };
+		571645D0DC0D9BF6E2946B02 /* StorageCleanerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D056D63DFFA516DB7B8C6119 /* StorageCleanerApp.swift */; };
+		7CB034D2BB67B54F466265FA /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2970692B6C137CDC18BC633E /* TrashService.swift */; };
+		BE64810CAA59CCE966D86AA5 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33BEBE1E63AE03CF70660DD9 /* ContentView.swift */; };
+		FEEA0DD62D334078F2B156A5 /* StorageCleanerCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4B25078F51704730F7F8E5C5 /* StorageCleanerCore */; };
+		FF02076FFA4686B51DEF1FA4 /* TrashServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C6C46EC940F16A8FE6A5ABA9 /* TrashServiceTests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		63986957B8DB093218BC7607 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = DD1B790A669019A2C9C3BC64 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7D644E1763C5644866325F31;
+			remoteInfo = StorageCleaner;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		06FCEEB9BA455E60A51D5C54 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1851C548899D7A5619F3DE00 /* StorageCleanerTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StorageCleanerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		2970692B6C137CDC18BC633E /* TrashService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashService.swift; sourceTree = "<group>"; };
+		33BEBE1E63AE03CF70660DD9 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		93FA8EF41E02064119CB5B07 /* StorageCleanerCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = StorageCleanerCore; path = StorageCleanerCore; sourceTree = SOURCE_ROOT; };
+		9CA13CA641AEFADB568F814B /* StorageCleaner.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StorageCleaner.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C6C46EC940F16A8FE6A5ABA9 /* TrashServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashServiceTests.swift; sourceTree = "<group>"; };
+		D056D63DFFA516DB7B8C6119 /* StorageCleanerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageCleanerApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		130DEA7D5EF19ECB7D68BF67 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FEEA0DD62D334078F2B156A5 /* StorageCleanerCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B0C692E0014B9DCA73A995EE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				0429CE51CFEB95F150BDEAF8 /* StorageCleanerCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		3E217E6FD82E35F045D2BDF4 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				2970692B6C137CDC18BC633E /* TrashService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		720485A8313EE58D17B18B3D /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				9CA13CA641AEFADB568F814B /* StorageCleaner.app */,
+				1851C548899D7A5619F3DE00 /* StorageCleanerTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B0A96F85D4D7EA7CAD7E22A1 /* StorageCleanerTests */ = {
+			isa = PBXGroup;
+			children = (
+				C6C46EC940F16A8FE6A5ABA9 /* TrashServiceTests.swift */,
+			);
+			path = StorageCleanerTests;
+			sourceTree = "<group>";
+		};
+		C6C44E8B27B8E762206AAEED /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				93FA8EF41E02064119CB5B07 /* StorageCleanerCore */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+		C7A4B25306B70F2DC0736DC6 /* StorageCleaner */ = {
+			isa = PBXGroup;
+			children = (
+				06FCEEB9BA455E60A51D5C54 /* Assets.xcassets */,
+				33BEBE1E63AE03CF70660DD9 /* ContentView.swift */,
+				D056D63DFFA516DB7B8C6119 /* StorageCleanerApp.swift */,
+				3E217E6FD82E35F045D2BDF4 /* Services */,
+			);
+			path = StorageCleaner;
+			sourceTree = "<group>";
+		};
+		D14D9CA2E03F972156F329E6 = {
+			isa = PBXGroup;
+			children = (
+				C6C44E8B27B8E762206AAEED /* Packages */,
+				C7A4B25306B70F2DC0736DC6 /* StorageCleaner */,
+				B0A96F85D4D7EA7CAD7E22A1 /* StorageCleanerTests */,
+				720485A8313EE58D17B18B3D /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		0478D3B8CD85577FA8D5B225 /* StorageCleanerTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 53D13C23D4C555D618492E5F /* Build configuration list for PBXNativeTarget "StorageCleanerTests" */;
+			buildPhases = (
+				EC966233B2383344BEA97172 /* Sources */,
+				130DEA7D5EF19ECB7D68BF67 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5451F90C94E59ADECE069CBE /* PBXTargetDependency */,
+			);
+			name = StorageCleanerTests;
+			packageProductDependencies = (
+				4B25078F51704730F7F8E5C5 /* StorageCleanerCore */,
+			);
+			productName = StorageCleanerTests;
+			productReference = 1851C548899D7A5619F3DE00 /* StorageCleanerTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		7D644E1763C5644866325F31 /* StorageCleaner */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2F5585A6116E0C4DD582EBD1 /* Build configuration list for PBXNativeTarget "StorageCleaner" */;
+			buildPhases = (
+				E502D1D9254DDF38068E5959 /* Safety guard (no permanent deletion) */,
+				0258341AFCB083CB3331B396 /* Sources */,
+				CF919FEF30E085F3A241204A /* Resources */,
+				B0C692E0014B9DCA73A995EE /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = StorageCleaner;
+			packageProductDependencies = (
+				9CA4FA69B0F3495A9F891C76 /* StorageCleanerCore */,
+			);
+			productName = StorageCleaner;
+			productReference = 9CA13CA641AEFADB568F814B /* StorageCleaner.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		DD1B790A669019A2C9C3BC64 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					0478D3B8CD85577FA8D5B225 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					7D644E1763C5644866325F31 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 63E66BCA23025E9E2D954D6A /* Build configuration list for PBXProject "StorageCleaner" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = D14D9CA2E03F972156F329E6;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7758B483764DE5A3128D2742 /* XCLocalSwiftPackageReference "StorageCleanerCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 720485A8313EE58D17B18B3D /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				7D644E1763C5644866325F31 /* StorageCleaner */,
+				0478D3B8CD85577FA8D5B225 /* StorageCleanerTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		CF919FEF30E085F3A241204A /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4071D40DD89FEE0C68A664A8 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		E502D1D9254DDF38068E5959 /* Safety guard (no permanent deletion) */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Safety guard (no permanent deletion)";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${SRCROOT}/scripts/check-no-permanent-delete.sh\" \"${SRCROOT}\"";
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		0258341AFCB083CB3331B396 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE64810CAA59CCE966D86AA5 /* ContentView.swift in Sources */,
+				571645D0DC0D9BF6E2946B02 /* StorageCleanerApp.swift in Sources */,
+				7CB034D2BB67B54F466265FA /* TrashService.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		EC966233B2383344BEA97172 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FF02076FFA4686B51DEF1FA4 /* TrashServiceTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		5451F90C94E59ADECE069CBE /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7D644E1763C5644866325F31 /* StorageCleaner */;
+			targetProxy = 63986957B8DB093218BC7607 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		4BB8714582CAB2227C059E1A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = StorageCleaner/StorageCleaner.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				"ENABLE_HARDENED_RUNTIME[sdk=macosx*]" = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = StorageCleaner;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "StorageCleaner scans your photo library to find large, duplicate and throwaway media. Nothing is removed unless you confirm, and removed items go to Recently Deleted.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.gabrielcherubini.StorageCleaner;
+				PRODUCT_NAME = StorageCleaner;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		854E3D49C78EF0C59378596F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		B1B251044E41D27570789854 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		CC9F9DC629AD7D28A4922AC1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.gabrielcherubini.StorageCleanerTests;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/StorageCleaner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/StorageCleaner";
+			};
+			name = Debug;
+		};
+		F05D5ED06950DEF60A7A9149 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "$(inherited) @executable_path/../Frameworks @loader_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.gabrielcherubini.StorageCleanerTests;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/StorageCleaner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/StorageCleaner";
+			};
+			name = Release;
+		};
+		F6DC35CF230249087F0108DD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				"CODE_SIGN_ENTITLEMENTS[sdk=macosx*]" = StorageCleaner/StorageCleaner.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = StorageCleaner;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "StorageCleaner scans your photo library to find large, duplicate and throwaway media. Nothing is removed unless you confirm, and removed items go to Recently Deleted.";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "$(inherited) @executable_path/../Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.gabrielcherubini.StorageCleaner;
+				PRODUCT_NAME = StorageCleaner;
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2F5585A6116E0C4DD582EBD1 /* Build configuration list for PBXNativeTarget "StorageCleaner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F6DC35CF230249087F0108DD /* Debug */,
+				4BB8714582CAB2227C059E1A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		53D13C23D4C555D618492E5F /* Build configuration list for PBXNativeTarget "StorageCleanerTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC9F9DC629AD7D28A4922AC1 /* Debug */,
+				F05D5ED06950DEF60A7A9149 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		63E66BCA23025E9E2D954D6A /* Build configuration list for PBXProject "StorageCleaner" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				854E3D49C78EF0C59378596F /* Debug */,
+				B1B251044E41D27570789854 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		7758B483764DE5A3128D2742 /* XCLocalSwiftPackageReference "StorageCleanerCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = StorageCleanerCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4B25078F51704730F7F8E5C5 /* StorageCleanerCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = StorageCleanerCore;
+		};
+		9CA4FA69B0F3495A9F891C76 /* StorageCleanerCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = StorageCleanerCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = DD1B790A669019A2C9C3BC64 /* Project object */;
+}
