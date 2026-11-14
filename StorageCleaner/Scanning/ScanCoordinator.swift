@@ -11,7 +11,10 @@ final class ScanCoordinator {
         var source: String
         var done: Int
         var total: Int?
+        var detail: String?
     }
+
+    private static let allowDownloadsKey = "allowICloudDownloadsForAnalysis"
 
     private(set) var progress: Progress?
     private(set) var summary: LibrarySummary = .empty
@@ -19,6 +22,16 @@ final class ScanCoordinator {
     private(set) var photoAccess: PhotoLibraryAccess = PhotoLibraryScanner.access
     private(set) var errors: [String] = []
     private(set) var lastScanDate: Date?
+    /// Results of the last duplicate analysis; cleared when a rescan may have changed the library.
+    private(set) var duplicates: DuplicateAnalyzer.Report?
+
+    /// Off by default: analysis then skips anything whose data is only in iCloud.
+    private(set) var allowICloudDownloads: Bool = UserDefaults.standard.bool(forKey: ScanCoordinator.allowDownloadsKey)
+
+    func setAllowICloudDownloads(_ allowed: Bool) {
+        allowICloudDownloads = allowed
+        UserDefaults.standard.set(allowed, forKey: Self.allowDownloadsKey)
+    }
 
     @ObservationIgnored private let store: MediaIndexStore
     @ObservationIgnored private let updater: IndexUpdater
@@ -41,7 +54,7 @@ final class ScanCoordinator {
     // MARK: Actions
 
     func scanEverything() {
-        start { coordinator in
+        start(invalidatesDuplicates: true) { coordinator in
             try await coordinator.scanPhotos()
             for folder in coordinator.folders {
                 try await coordinator.scanFolderRecordingErrors(folder)
@@ -50,11 +63,15 @@ final class ScanCoordinator {
     }
 
     func scanPhotosOnly() {
-        start { try await $0.scanPhotos() }
+        start(invalidatesDuplicates: true) { try await $0.scanPhotos() }
     }
 
     func scan(folder: FolderRecord) {
-        start { try await $0.scanFolderRecordingErrors(folder) }
+        start(invalidatesDuplicates: true) { try await $0.scanFolderRecordingErrors(folder) }
+    }
+
+    func findDuplicates() {
+        start { try await $0.runDuplicateAnalysis() }
     }
 
     func cancel() {
@@ -89,6 +106,7 @@ final class ScanCoordinator {
         do {
             try await store.forgetFolder(id: folder.id)
             folders.removeAll { $0.id == folder.id }
+            duplicates = nil
             await refreshSummary()
         } catch {
             errors.append(error.localizedDescription)
@@ -101,9 +119,13 @@ final class ScanCoordinator {
 
     // MARK: Scanning
 
-    private func start(_ work: @escaping @MainActor (ScanCoordinator) async throws -> Void) {
+    private func start(
+        invalidatesDuplicates: Bool = false,
+        _ work: @escaping @MainActor (ScanCoordinator) async throws -> Void
+    ) {
         guard task == nil else { return }
         errors.removeAll()
+        if invalidatesDuplicates { duplicates = nil }
         task = Task {
             do {
                 try await work(self)
@@ -163,9 +185,18 @@ final class ScanCoordinator {
         folders = (try? await store.folders()) ?? folders
     }
 
-    private func report(source: String, done: Int, total: Int?, refreshSummary: Bool = true) async {
+    private func runDuplicateAnalysis() async throws {
+        let source = "Duplicates"
+        progress = Progress(source: source, done: 0, total: nil)
+        let analyzer = DuplicateAnalyzer(store: store, allowDownloads: allowICloudDownloads)
+        duplicates = try await analyzer.run { step, done, total in
+            await self.report(source: source, done: done, total: total, detail: step, refreshSummary: false)
+        }
+    }
+
+    private func report(source: String, done: Int, total: Int?, detail: String? = nil, refreshSummary: Bool = true) async {
         guard task != nil, progress?.source == source else { return }
-        progress = Progress(source: source, done: done, total: total)
+        progress = Progress(source: source, done: done, total: total, detail: detail)
         if refreshSummary, Date().timeIntervalSince(lastSummaryRefresh) > 1 {
             await self.refreshSummary()
         }
@@ -173,7 +204,10 @@ final class ScanCoordinator {
 
     private func refreshSummary() async {
         lastSummaryRefresh = Date()
-        if let summary = try? await store.summary() {
+        if var summary = try? await store.summary() {
+            if let duplicates {
+                summary.addSavings(duplicates.groups.flatMap(\.suggestedForRemoval), to: .duplicates)
+            }
             self.summary = summary
         }
     }

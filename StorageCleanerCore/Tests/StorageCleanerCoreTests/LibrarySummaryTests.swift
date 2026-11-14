@@ -57,6 +57,17 @@ final class LibrarySummaryTests: XCTestCase {
         XCTAssertEqual(tally.totalBytes, 0)
     }
 
+    func testAddingDuplicateSavingsCountsOverlapOnce() {
+        let big = MediaItem.fixture("big", bytes: 80 * mb)
+        let copy = MediaItem.fixture("copy", bytes: 3 * mb)
+        var summary = LibrarySummary(items: [big, copy])
+
+        summary.addSavings([big, copy], to: .duplicates)
+
+        XCTAssertEqual(summary.potentialSavings.bytes(in: .duplicates), 83 * mb)
+        XCTAssertEqual(summary.potentialSavings.totalBytes, 83 * mb)
+    }
+
     func testEmpty() {
         XCTAssertEqual(LibrarySummary.empty.itemCount, 0)
         XCTAssertEqual(LibrarySummary.empty.potentialSavings.totalBytes, 0)

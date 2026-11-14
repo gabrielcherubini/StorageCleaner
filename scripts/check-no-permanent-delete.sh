@@ -8,8 +8,11 @@
 # destructive file APIs are banned outright.
 # Rule 2: trash / Recently Deleted APIs, and PhotoKit change requests, may only appear in
 # TrashService.swift.
-# Rule 3: scanner code is read-only. Files under READ_ONLY_DIRS may not write, move or change
-# attributes of files, change the photo library, or download iCloud originals.
+# Rule 3: scanner and analysis code is read-only. Files under READ_ONLY_DIRS may not write, move
+# or change attributes of files. Scanner code (SCAN_ONLY_DIRS) additionally may not download iCloud
+# originals or request media data at all.
+# Rule 4: iCloud downloads are opt-in. `isNetworkAccessAllowed = true` is banned everywhere; it
+# must come from the user's setting.
 set -euo pipefail
 
 ROOT="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
@@ -44,6 +47,13 @@ TRASH_ONLY_PATTERNS=(
 READ_ONLY_DIRS=(
   "StorageCleaner/Scanning/"
   "StorageCleanerCore/Sources/StorageCleanerCore/Scanning/"
+  "StorageCleaner/Analysis/"
+  "StorageCleanerCore/Sources/StorageCleanerCore/Duplicates/"
+)
+
+SCAN_ONLY_DIRS=(
+  "StorageCleaner/Scanning/"
+  "StorageCleanerCore/Sources/StorageCleanerCore/Scanning/"
 )
 
 READ_ONLY_PATTERNS=(
@@ -56,11 +66,17 @@ READ_ONLY_PATTERNS=(
   'createSymbolicLink'
   'setAttributes'
   'setResourceValue'                       # URL.setResourceValue(s)
-  'forWriting'                             # FileHandle(forWritingTo:)
+  'forWriting'                             # FileHandle(forWritingTo:), AVAudioFile(forWriting:)
   'forUpdating'                            # FileHandle(forUpdating:)
+  'writeData'                              # PHAssetResourceManager.writeData(for:toFile:)
+  'AVAssetWriter'
+  'AVAssetExportSession'
   'startDownloadingUbiquitousItem'
   'evictUbiquitousItem'
   'setUbiquitous'
+)
+
+SCAN_ONLY_PATTERNS=(
   'isNetworkAccessAllowed'                 # lets PhotoKit download iCloud originals
   'PHAssetResourceManager'
   'requestImage'
@@ -70,6 +86,8 @@ READ_ONLY_PATTERNS=(
   'requestLivePhoto'
   'requestContentEditingInput'
 )
+
+NETWORK_OPT_IN_PATTERN='isNetworkAccessAllowed[[:space:]]*=[[:space:]]*true'
 
 FILES=()
 while IFS= read -r -d '' file; do FILES+=("$file"); done < <(
@@ -105,19 +123,35 @@ if [[ ${#FILES[@]} -gt 0 ]]; then
     done < <(grep -nHE -- "$pattern" "${FILES[@]}" || true)
   done
 
+  while IFS= read -r match; do
+    [[ -n "$match" ]] && report "$match" "iCloud downloads must be opt-in; set isNetworkAccessAllowed from the user's setting"
+  done < <(grep -nHE -- "$NETWORK_OPT_IN_PATTERN" "${FILES[@]}" || true)
+
   READ_ONLY_FILES=()
+  SCAN_ONLY_FILES=()
   for file in "${FILES[@]}"; do
     rel="${file#"$ROOT"/}"
     for dir in "${READ_ONLY_DIRS[@]}"; do
-      [[ "$rel" == "$dir"* ]] && READ_ONLY_FILES+=("$file")
+      if [[ "$rel" == "$dir"* ]]; then READ_ONLY_FILES+=("$file"); break; fi
+    done
+    for dir in "${SCAN_ONLY_DIRS[@]}"; do
+      if [[ "$rel" == "$dir"* ]]; then SCAN_ONLY_FILES+=("$file"); break; fi
     done
   done
 
   if [[ ${#READ_ONLY_FILES[@]} -gt 0 ]]; then
     for pattern in "${READ_ONLY_PATTERNS[@]}"; do
       while IFS= read -r match; do
-        [[ -n "$match" ]] && report "$match" "Scanner code must be read-only (/${pattern}/)"
+        [[ -n "$match" ]] && report "$match" "Scanner and analysis code must be read-only (/${pattern}/)"
       done < <(grep -nHE -- "$pattern" "${READ_ONLY_FILES[@]}" || true)
+    done
+  fi
+
+  if [[ ${#SCAN_ONLY_FILES[@]} -gt 0 ]]; then
+    for pattern in "${SCAN_ONLY_PATTERNS[@]}"; do
+      while IFS= read -r match; do
+        [[ -n "$match" ]] && report "$match" "Scanner code may not download or request media data (/${pattern}/)"
+      done < <(grep -nHE -- "$pattern" "${SCAN_ONLY_FILES[@]}" || true)
     done
   fi
 fi
@@ -127,4 +161,4 @@ if [[ $violations -gt 0 ]]; then
   exit 1
 fi
 
-echo "Safety guard passed: scanned ${#FILES[@]} source file(s); no permanent-deletion APIs, trash APIs only in ${TRASH_SERVICE}, scanners read-only."
+echo "Safety guard passed: scanned ${#FILES[@]} source file(s); no permanent-deletion APIs, trash APIs only in ${TRASH_SERVICE}, scanner and analysis code read-only, iCloud downloads opt-in."
