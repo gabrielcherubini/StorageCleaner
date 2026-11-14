@@ -69,6 +69,10 @@ expect fail analysis-write       StorageCleaner/Analysis/X.swift 'try data.write
 expect fail analysis-export      StorageCleaner/Analysis/X.swift 'let session = AVAssetExportSession(asset: asset, presetName: preset)'
 expect fail analysis-write-resource StorageCleaner/Analysis/X.swift 'PHAssetResourceManager.default().writeData(for: r, toFile: url, options: nil) { _ in }'
 expect fail core-duplicates-write StorageCleanerCore/Sources/StorageCleanerCore/Duplicates/X.swift 'FileManager.default.createFile(atPath: p, contents: d)'
+expect fail core-classifiers-write StorageCleanerCore/Sources/StorageCleanerCore/Classifiers/X.swift 'try data.write(to: url)'
+expect pass core-classifiers-read StorageCleanerCore/Sources/StorageCleanerCore/Classifiers/X.swift 'let text = try String(contentsOf: url)'
+expect fail analysis-partial-read-download StorageCleaner/Analysis/X.swift 'options.isNetworkAccessAllowed = true'
+expect pass analysis-partial-read StorageCleaner/Analysis/X.swift 'manager.cancelDataRequest(id)'
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures safety guard self-test(s) failed" >&2

@@ -35,7 +35,11 @@ struct ContentView: View {
 
                 Section("Overview") { SummaryRows(summary: scanner.summary) }
 
+                AnalysisSettingsSection()
+
                 DuplicatesSection()
+
+                CategoriesSection()
 
                 Section("Heaviest items") {
                     if scanner.summary.heaviest.isEmpty {
@@ -150,6 +154,12 @@ private struct SummaryRows: View {
             "Duplicates",
             value: "\(summary.potentialSavings.count(in: .duplicates)) · \(formattedBytes(summary.potentialSavings.bytes(in: .duplicates)))"
         )
+        ForEach(CleanupCategory.classified, id: \.self) { category in
+            LabeledContent(
+                category.title,
+                value: "\(summary.potentialSavings.count(in: category)) · \(formattedBytes(summary.potentialSavings.bytes(in: category)))"
+            )
+        }
         LabeledContent(
             "Large files (50 MB+)",
             value: "\(summary.potentialSavings.count(in: .largeFiles)) · \(formattedBytes(summary.potentialSavings.bytes(in: .largeFiles)))"
@@ -157,7 +167,7 @@ private struct SummaryRows: View {
     }
 }
 
-private struct DuplicatesSection: View {
+private struct AnalysisSettingsSection: View {
     @Environment(ScanCoordinator.self) private var scanner
 
     var body: some View {
@@ -166,6 +176,19 @@ private struct DuplicatesSection: View {
                 get: { scanner.allowICloudDownloads },
                 set: { scanner.setAllowICloudDownloads($0) }
             ))
+        } header: {
+            Text("Analysis")
+        } footer: {
+            Text("Analysis only reads your media. With downloads off, items stored only in iCloud are skipped.")
+        }
+    }
+}
+
+private struct DuplicatesSection: View {
+    @Environment(ScanCoordinator.self) private var scanner
+
+    var body: some View {
+        Section {
             Button("Find Duplicates", systemImage: "square.on.square") { scanner.findDuplicates() }
                 .disabled(scanner.isScanning || scanner.summary.itemCount == 0)
 
@@ -189,7 +212,7 @@ private struct DuplicatesSection: View {
         } header: {
             Text("Duplicates")
         } footer: {
-            Text("Exact copies are matched by size and SHA-256; similar photos, videos and audio by content. The suggested keeper is a favorite, then the highest resolution, then the oldest copy. Favorites, shared and edited items are never suggested for removal. With downloads off, items stored only in iCloud are skipped.")
+            Text("Exact copies are matched by size and SHA-256; similar photos, videos and audio by content. The suggested keeper is a favorite, then the highest resolution, then the oldest copy. Favorites, shared and edited items are never suggested for removal.")
         }
     }
 }
@@ -241,7 +264,7 @@ extension DuplicateGroup.Match {
     }
 }
 
-private struct MediaRow: View {
+struct MediaRow: View {
     let item: MediaItem
 
     var body: some View {

@@ -95,6 +95,8 @@ final class CachedSignature {
     var duration: Double?
     var pixelWidth: Int?
     var pixelHeight: Int?
+    /// JSON-encoded `ClassificationSignals`.
+    var classification: Data?
 
     init(key: String, signatures: MediaSignatures) {
         self.key = key
@@ -113,6 +115,7 @@ final class CachedSignature {
         duration = signatures.duration
         pixelWidth = signatures.pixelWidth
         pixelHeight = signatures.pixelHeight
+        classification = signatures.classification.flatMap { try? JSONEncoder().encode($0) }
     }
 
     var signatures: MediaSignatures {
@@ -125,6 +128,7 @@ final class CachedSignature {
         result.duration = duration
         result.pixelWidth = pixelWidth
         result.pixelHeight = pixelHeight
+        result.classification = classification.flatMap { try? JSONDecoder().decode(ClassificationSignals.self, from: $0) }
         return result
     }
 }

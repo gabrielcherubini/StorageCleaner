@@ -18,6 +18,9 @@ StorageCleaner never deletes anything permanently.
 - Scanning is read-only. The guard also fails if code under `StorageCleaner/Scanning/` or
   `StorageCleanerCore/Sources/StorageCleanerCore/Scanning/` writes, moves or changes files, changes
   the photo library, or requests iCloud downloads.
+- Analysis is read-only too: code under `StorageCleaner/Analysis/` and the Core `Duplicates/` and
+  `Classifiers/` folders may not write, move or change files, and nothing may turn on network access
+  for media requests except the user's "Download iCloud originals" setting.
 
 ## Scanning
 
@@ -35,8 +38,24 @@ StorageCleaner never deletes anything permanently.
   then the highest resolution, then the oldest copy; favorites, shared and edited items are never
   suggested for removal. Analysis only reads data, caches its results in the index, and skips
   iCloud-only items unless "Download iCloud originals for analysis" is turned on.
-- The overview lists everything heaviest first, with a running potential-savings total (for now,
-  non-protected files of 50 MB or more; later analyzers add more categories).
+- **Categories**: each item can get a category with a confidence and the reasons behind it:
+  - *Chat & app forwards*: WhatsApp/Telegram/Signal/Messenger file names, no camera make/model
+    (only the first 1 MB of a photo is read to check), messenger resize sizes, batches of saves.
+  - *Screenshots & recordings*: the Photos screenshot/screen-recording flags, screenshot file names
+    (English and Portuguese), screen-native sizes without camera info.
+  - *Receipts & documents*: Vision document detection, then Vision text recognition (pt-BR and
+    en-US) only for likely documents, scored on Portuguese/BRL and English receipt words, `R$`
+    amounts and CNPJ/CPF numbers.
+  - *Low quality*: blur (Laplacian variance), too dark or overexposed, ground/pocket shots (almost
+    no detail), very short or nearly still videos, very short or nearly silent audio.
+
+  Each category is split into **Likely to delete** (confidence above the category's threshold) and
+  **Likely to keep**. Favorites, shared and edited items always go to Likely to keep and are never
+  pre-selected. The scoring lives in `StorageCleanerCore/Sources/StorageCleanerCore/Classifiers/`;
+  the same read-only and opt-in download rules apply, and results are cached with the signatures.
+- The overview lists everything heaviest first, with a running potential-savings total: large
+  files (50 MB+), duplicates suggested for removal and items likely to delete in each category,
+  each item counted once.
 
 ## Layout
 
