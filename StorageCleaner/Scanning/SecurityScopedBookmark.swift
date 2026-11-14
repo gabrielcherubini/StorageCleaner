@@ -36,4 +36,10 @@ enum SecurityScopedBookmark {
         defer { if didStart { url.stopAccessingSecurityScopedResource() } }
         return try body()
     }
+
+    static func withAccess<T>(to url: URL, _ body: () async throws -> T) async rethrows -> T {
+        let didStart = url.startAccessingSecurityScopedResource()
+        defer { if didStart { url.stopAccessingSecurityScopedResource() } }
+        return try await body()
+    }
 }

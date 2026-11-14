@@ -102,6 +102,13 @@ public struct LibrarySummary: Equatable, Sendable {
         )
     }
 
+    /// Adds analyzer results (for example items suggested in duplicate groups) to the savings total.
+    public mutating func addSavings(_ items: some Sequence<MediaItem>, to category: CleanupCategory) {
+        for item in items {
+            potentialSavings.add(SummaryEntry(item), to: category)
+        }
+    }
+
     public func count(of kind: MediaKind) -> Int { countByKind[kind] ?? 0 }
     public func bytes(of kind: MediaKind) -> Int64 { bytesByKind[kind] ?? 0 }
 }

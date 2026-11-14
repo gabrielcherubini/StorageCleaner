@@ -29,6 +29,12 @@ StorageCleaner never deletes anything permanently.
 - **Index**: results are cached in SwiftData. Rescans compare a cheap fingerprint (modification
   date, plus size for files) and only re-read new or changed items; rows for items that vanished are
   dropped from the index.
+- **Duplicates**: exact copies are found by size first, then SHA-256. Similar photos are compared
+  with Vision feature prints within a 15-minute window, similar videos by duration plus keyframe
+  hashes, and similar audio by duration plus a loudness curve. The suggested keeper is a favorite,
+  then the highest resolution, then the oldest copy; favorites, shared and edited items are never
+  suggested for removal. Analysis only reads data, caches its results in the index, and skips
+  iCloud-only items unless "Download iCloud originals for analysis" is turned on.
 - The overview lists everything heaviest first, with a running potential-savings total (for now,
   non-protected files of 50 MB or more; later analyzers add more categories).
 

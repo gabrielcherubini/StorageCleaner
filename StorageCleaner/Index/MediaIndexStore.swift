@@ -59,6 +59,8 @@ actor MediaIndexStore {
         for chunk in keys.chunked(into: 500) {
             let rows = try modelContext.fetch(FetchDescriptor<IndexedMedia>(predicate: #Predicate { chunk.contains($0.key) }))
             for row in rows { modelContext.delete(row) }
+            let cached = try modelContext.fetch(FetchDescriptor<CachedSignature>(predicate: #Predicate { chunk.contains($0.key) }))
+            for row in cached { modelContext.delete(row) }
         }
         try modelContext.save()
     }
@@ -69,6 +71,16 @@ actor MediaIndexStore {
         let rows = try modelContext.fetch(FetchDescriptor<IndexedMedia>(predicate: #Predicate { $0.scope == scopeValue }))
         for row in rows { modelContext.delete(row) }
         try modelContext.save()
+    }
+
+    /// Every indexed item with the scope it was scanned in.
+    func scopedItems() throws -> [ScopedItem] {
+        let decoder = JSONDecoder()
+        return try modelContext.fetch(FetchDescriptor<IndexedMedia>()).compactMap { row in
+            guard let scope = IndexScope(rawValue: row.scope),
+                  let item = try? decoder.decode(MediaItem.self, from: row.payload) else { return nil }
+            return ScopedItem(item: item, scope: scope)
+        }
     }
 
     func item(forKey key: String) throws -> MediaItem? {
@@ -100,6 +112,30 @@ actor MediaIndexStore {
             return SummaryEntry(key: row.key, kind: kind, byteSize: row.byteSize, isProtected: row.isProtected)
         }
         return LibrarySummary(entries: entries, heaviest: try heaviestItems(limit: heaviestLimit))
+    }
+
+    // MARK: Analysis cache
+
+    func signatures() throws -> [String: MediaSignatures] {
+        let rows = try modelContext.fetch(FetchDescriptor<CachedSignature>())
+        return Dictionary(rows.map { ($0.key, $0.signatures) }, uniquingKeysWith: { first, _ in first })
+    }
+
+    func saveSignatures(_ signatures: [String: MediaSignatures]) throws {
+        guard !signatures.isEmpty else { return }
+        let keys = Array(signatures.keys)
+        let existing = try modelContext.fetch(FetchDescriptor<CachedSignature>(predicate: #Predicate { keys.contains($0.key) }))
+        var byKey = Dictionary(existing.map { ($0.key, $0) }, uniquingKeysWith: { first, _ in first })
+        for (key, value) in signatures {
+            if let row = byKey[key] {
+                row.update(from: value)
+            } else {
+                let row = CachedSignature(key: key, signatures: value)
+                modelContext.insert(row)
+                byKey[key] = row
+            }
+        }
+        try modelContext.save()
     }
 
     // MARK: Folders

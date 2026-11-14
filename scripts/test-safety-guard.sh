@@ -60,6 +60,16 @@ expect fail scanner-download     StorageCleaner/Scanning/X.swift 'try fm.startDo
 expect fail scanner-network      StorageCleaner/Scanning/X.swift 'options.isNetworkAccessAllowed = true'
 expect fail scanner-request-data StorageCleaner/Scanning/X.swift 'PHAssetResourceManager.default().requestData(for: resource, options: nil) { _ in } completionHandler: { _ in }'
 
+expect pass analysis-reads-opt-in StorageCleaner/Analysis/X.swift 'options.isNetworkAccessAllowed = allowDownloads
+PHAssetResourceManager.default().requestData(for: r, options: options) { _ in } completionHandler: { _ in }
+let handle = try FileHandle(forReadingFrom: url)'
+expect fail network-always-on    StorageCleaner/Analysis/X.swift 'options.isNetworkAccessAllowed = true'
+expect fail network-always-on-ui StorageCleaner/Views/X.swift 'opts.isNetworkAccessAllowed=true'
+expect fail analysis-write       StorageCleaner/Analysis/X.swift 'try data.write(to: cacheURL)'
+expect fail analysis-export      StorageCleaner/Analysis/X.swift 'let session = AVAssetExportSession(asset: asset, presetName: preset)'
+expect fail analysis-write-resource StorageCleaner/Analysis/X.swift 'PHAssetResourceManager.default().writeData(for: r, toFile: url, options: nil) { _ in }'
+expect fail core-duplicates-write StorageCleanerCore/Sources/StorageCleanerCore/Duplicates/X.swift 'FileManager.default.createFile(atPath: p, contents: d)'
+
 if [[ $failures -gt 0 ]]; then
   echo "$failures safety guard self-test(s) failed" >&2
   exit 1
