@@ -72,10 +72,11 @@ enum VisualAnalysis {
     static let textLanguages = ["pt-BR", "en-US"]
     static let maxTextLength = 4_000
 
-    static func recognizedText(in image: CGImage) throws -> String {
+    /// `accurate` is for detected documents; paper-like photos get the much cheaper fast pass.
+    static func recognizedText(in image: CGImage, accurate: Bool = true) throws -> String {
         let request = VNRecognizeTextRequest()
-        request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = true
+        request.recognitionLevel = accurate ? .accurate : .fast
+        request.usesLanguageCorrection = accurate
         let supported = (try? request.supportedRecognitionLanguages()) ?? []
         let languages = textLanguages.filter { supported.contains($0) }
         if !languages.isEmpty { request.recognitionLanguages = languages }

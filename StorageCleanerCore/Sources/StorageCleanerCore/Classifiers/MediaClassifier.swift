@@ -55,12 +55,29 @@ public struct ClassifierOptions: Equatable, Sendable {
     public var audioAnalysisMaxDuration: TimeInterval = 10
     public var burstWindow: TimeInterval = 10
     public var documentTextThreshold = 0.5
+    /// Paper-like photos (bright with high-contrast detail, as text on a page) also get text
+    /// recognition, so receipts photographed without a visible edge are not missed.
+    public var paperMinimumMeanLuminance = 170.0
+    public var paperMinimumDeviation = 30.0
+    public var paperEdgeDensity: ClosedRange<Double> = 0.02...0.4
 
     public static let `default` = ClassifierOptions()
 
     public init() {}
 
     public func deleteThreshold(for category: CleanupCategory) -> Double { deleteThresholds[category] ?? 0.8 }
+
+    public func looksLikePaper(_ stats: ImageStats) -> Bool {
+        stats.meanLuminance >= paperMinimumMeanLuminance
+            && stats.standardDeviation >= paperMinimumDeviation
+            && paperEdgeDensity.contains(stats.edgeDensity)
+    }
+
+    /// Whether text recognition should run: a detected document or a paper-like photo.
+    public func wantsText(_ signals: ClassificationSignals) -> Bool {
+        if let confidence = signals.documentConfidence, confidence >= documentTextThreshold { return true }
+        return signals.imageStats.map(looksLikePaper) ?? false
+    }
 }
 
 /// Which classifier signals still have to be read.
@@ -107,7 +124,7 @@ public enum MediaClassifier {
                 if isFlaggedScreenshot(item) { continue }
                 if couldBeForward(item) { need(item, missing: { $0.hasCameraMetadata == nil }, into: &needs.cameraMetadata) }
                 need(item, missing: { $0.imageStats == nil || $0.documentConfidence == nil }, into: &needs.visual)
-                if let confidence = valid[key]?.classification?.documentConfidence, confidence >= options.documentTextThreshold {
+                if let signals = valid[key]?.classification, signals.documentConfidence != nil, options.wantsText(signals) {
                     need(item, missing: { $0.recognizedText == nil }, into: &needs.text)
                 }
             case .video:
@@ -250,6 +267,7 @@ public enum MediaClassifier {
         guard !isFlaggedScreenshot(item) else { return nil }
         var evidence: [(ClassificationReason, Double)] = []
         let isDocument = (signals.documentConfidence ?? 0) >= 0.5
+            || signals.recognizedText.map { ReceiptText.evidence(in: $0).score >= 0.5 } ?? false
 
         if item.kind == .photo || item.kind == .video, let stats = signals.imageStats {
             let lowDetail = stats.standardDeviation < 12 && stats.edgeDensity < 0.02

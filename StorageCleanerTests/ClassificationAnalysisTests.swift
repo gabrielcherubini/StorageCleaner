@@ -61,6 +61,29 @@ final class ClassificationAnalysisTests: XCTestCase {
         XCTAssertFalse(recorded.contains("Checking photo quality and documents"), "cached signals are reused")
     }
 
+    func testPaperLikeReceiptWithoutVisibleEdgesIsFound() async throws {
+        try write(makeTextImage(lines: [
+            "SUPERMERCADO EXEMPLO LTDA",
+            "CNPJ 12.345.678/0001-90",
+            "CUPOM FISCAL ELETRONICO",
+            "TOTAL            R$ 54,90",
+            "PAGAMENTO PIX",
+        ]), as: .jpeg, to: "receipt.jpg")
+        try await indexFolder()
+
+        let report: ClassificationAnalyzer.Report
+        do {
+            report = try await ClassificationAnalyzer(store: store, allowDownloads: false).run()
+        } catch {
+            throw XCTSkip("Classification is unavailable on this machine: \(error)")
+        }
+        if report.failed > 0 { throw XCTSkip("Vision could not analyze the fixture on this machine") }
+
+        let receipts = report.reviews.first { $0.category == .receipts }
+        XCTAssertEqual(receipts?.likelyToDelete.compactMap(\.item.filename), ["receipt.jpg"])
+        XCTAssertNil(report.reviews.first { $0.category == .lowQuality }, "a white page is not overexposed")
+    }
+
     func testImageStatsSeparateFlatAndDetailedImages() throws {
         let flat = try XCTUnwrap(VisualAnalysis.stats(of: makeFlat(width: 800, height: 600, level: 8)))
         let detailed = try XCTUnwrap(VisualAnalysis.stats(of: makeNoise(width: 800, height: 600, seed: 4)))

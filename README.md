@@ -44,7 +44,7 @@ StorageCleaner never deletes anything permanently.
   - *Screenshots & recordings*: the Photos screenshot/screen-recording flags, screenshot file names
     (English and Portuguese), screen-native sizes without camera info.
   - *Receipts & documents*: Vision document detection, then Vision text recognition (pt-BR and
-    en-US) only for likely documents, scored on Portuguese/BRL and English receipt words, `R$`
+    en-US) only for likely documents (accurate pass) or bright, paper-like photos (fast pass), scored on Portuguese/BRL and English receipt words, `R$`
     amounts and CNPJ/CPF numbers.
   - *Low quality*: blur (Laplacian variance), too dark or overexposed, ground/pocket shots (almost
     no detail), very short or nearly still videos, very short or nearly silent audio.

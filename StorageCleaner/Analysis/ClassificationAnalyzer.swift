@@ -69,10 +69,12 @@ struct ClassificationAnalyzer: Sendable {
             return signature
         }
 
-        // Text is only read for photos the visual pass found to be documents.
+        // Text is only read for photos the visual pass found to be documents or paper-like.
         let textNeeds = needs().text
+        let documentThreshold = options.documentTextThreshold
         try await runner.process(textNeeds, step: "Reading text in documents", progress: progress) { source, _, signature in
             var signature = signature
+            let isDocument = (signature.classificationSignals.documentConfidence ?? 0) >= documentThreshold
             let image: CGImage
             switch source {
             case let .photo(id):
@@ -82,7 +84,7 @@ struct ClassificationAnalyzer: Sendable {
                 else { throw AnalysisError.unreadable }
                 image = thumbnail.image
             }
-            signature.classificationSignals.recognizedText = try VisualAnalysis.recognizedText(in: image)
+            signature.classificationSignals.recognizedText = try VisualAnalysis.recognizedText(in: image, accurate: isDocument)
             return signature
         }
 

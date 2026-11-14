@@ -188,6 +188,35 @@ final class MediaClassifierTests: XCTestCase {
         XCTAssertTrue(needs.visual.isEmpty)
     }
 
+    func testPaperLikePhotosAlsoGetTextRecognition() {
+        let paper = ImageStats(meanLuminance: 215, standardDeviation: 55, darkFraction: 0.08,
+                               brightFraction: 0.6, laplacianVariance: 900, edgeDensity: 0.08)
+        let receipt = photo("receipt"), scene = photo("scene"), sky = photo("sky")
+        let signatures = Dictionary(uniqueKeysWithValues: [
+            signals(receipt) { $0.imageStats = paper; $0.documentConfidence = 0 },
+            signals(scene) { $0.imageStats = sharp; $0.documentConfidence = 0 },
+            signals(sky) { $0.imageStats = ImageStats(meanLuminance: 220, standardDeviation: 10, darkFraction: 0,
+                                                      brightFraction: 0.4, laplacianVariance: 5, edgeDensity: 0.001)
+                           $0.documentConfidence = 0 },
+        ])
+        XCTAssertEqual(MediaClassifier.needs(items: [receipt, scene, sky], signatures: signatures, allowDownloads: false).text,
+                       [receipt])
+    }
+
+    func testReceiptTextWithoutDetectedDocumentIsConfidentAndNotOverexposed() throws {
+        let item = photo("r")
+        let result = classify([item], [signals(item) {
+            $0.documentConfidence = 0
+            $0.imageStats = ImageStats(meanLuminance: 240, standardDeviation: 40, darkFraction: 0.05,
+                                       brightFraction: 0.9, laplacianVariance: 500, edgeDensity: 0.06)
+            $0.recognizedText = "CUPOM FISCAL\nCNPJ 12.345.678/0001-90\nTOTAL R$ 54,90\nPAGAMENTO PIX"
+        }])
+        let receipt = try XCTUnwrap(classification(result, item, .receipts))
+        XCTAssertGreaterThanOrEqual(receipt.confidence, ClassifierOptions.default.deleteThreshold(for: .receipts))
+        XCTAssertFalse(receipt.reasons.contains(.documentDetected))
+        XCTAssertNil(classification(result, item, .lowQuality))
+    }
+
     func testNeedsRespectCloudOnlyAndShortMediaLimits() {
         var cloudOnly = photo("cloud", size: (4032, 3024))
         cloudOnly.isLocallyAvailable = false
