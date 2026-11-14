@@ -15,6 +15,22 @@ StorageCleaner never deletes anything permanently.
 - `scripts/check-no-permanent-delete.sh` fails CI (and the Xcode build, as a pre-build phase) if
   any permanent-deletion API appears anywhere, or if trash APIs appear outside `TrashService`.
   `scripts/test-safety-guard.sh` checks the guard itself.
+- Scanning is read-only. The guard also fails if code under `StorageCleaner/Scanning/` or
+  `StorageCleanerCore/Sources/StorageCleanerCore/Scanning/` writes, moves or changes files, changes
+  the photo library, or requests iCloud downloads.
+
+## Scanning
+
+- **iCloud Photos**: PhotoKit, read-only metadata (size of all resources, dimensions, duration,
+  dates, favorite/edited/shared flags, subtype hints such as screenshots and Live Photos).
+- **iCloud Drive**: the user picks a folder (normally iCloud Drive) with the system folder picker
+  on macOS and iOS; access is kept with a security-scoped bookmark. Files that are not downloaded
+  are indexed from metadata or their `.icloud` placeholder without downloading them.
+- **Index**: results are cached in SwiftData. Rescans compare a cheap fingerprint (modification
+  date, plus size for files) and only re-read new or changed items; rows for items that vanished are
+  dropped from the index.
+- The overview lists everything heaviest first, with a running potential-savings total (for now,
+  non-protected files of 50 MB or more; later analyzers add more categories).
 
 ## Layout
 

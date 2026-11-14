@@ -48,6 +48,17 @@ expect fail truncate             StorageCleaner/Foo.swift 'try handle.truncate(a
 expect fail trash-outside        StorageCleaner/Foo.swift 'try FileManager.default.trashItem(at: url, resultingItemURL: nil)'
 expect fail delete-assets-outside StorageCleaner/Views/Grid.swift 'PHAssetChangeRequest.deleteAssets(assets)'
 expect fail recycle-outside      StorageCleaner/Foo.swift 'NSWorkspace.shared.recycle([url])'
+expect fail change-request-outside StorageCleaner/Foo.swift 'PHAssetChangeRequest(for: asset).isFavorite = false'
+expect fail perform-changes-outside StorageCleaner/Foo.swift 'try await PHPhotoLibrary.shared().performChanges { }'
+
+expect pass scanner-reads        StorageCleaner/Scanning/PhotoScanner.swift 'let values = try url.resourceValues(forKeys: keys); let data = try Data(contentsOf: stub)'
+expect pass write-outside-scanner StorageCleaner/Log/DecisionLog.swift 'try data.write(to: logURL)'
+expect fail scanner-write        StorageCleaner/Scanning/PhotoScanner.swift 'try data.write(to: url)'
+expect fail scanner-move         StorageCleanerCore/Sources/StorageCleanerCore/Scanning/X.swift 'try fm.moveItem(at: a, to: b)'
+expect fail scanner-attributes   StorageCleaner/Scanning/X.swift 'try url.setResourceValues(values)'
+expect fail scanner-download     StorageCleaner/Scanning/X.swift 'try fm.startDownloadingUbiquitousItem(at: url)'
+expect fail scanner-network      StorageCleaner/Scanning/X.swift 'options.isNetworkAccessAllowed = true'
+expect fail scanner-request-data StorageCleaner/Scanning/X.swift 'PHAssetResourceManager.default().requestData(for: resource, options: nil) { _ in } completionHandler: { _ in }'
 
 if [[ $failures -gt 0 ]]; then
   echo "$failures safety guard self-test(s) failed" >&2

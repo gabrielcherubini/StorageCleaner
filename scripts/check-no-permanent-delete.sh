@@ -6,7 +6,10 @@
 #
 # Rule 1 applies to every source file, TrashService included: permanent-deletion and
 # destructive file APIs are banned outright.
-# Rule 2: trash / Recently Deleted APIs may only appear in TrashService.swift.
+# Rule 2: trash / Recently Deleted APIs, and PhotoKit change requests, may only appear in
+# TrashService.swift.
+# Rule 3: scanner code is read-only. Files under READ_ONLY_DIRS may not write, move or change
+# attributes of files, change the photo library, or download iCloud originals.
 set -euo pipefail
 
 ROOT="${1:-$(cd "$(dirname "$0")/.." && pwd)}"
@@ -34,6 +37,38 @@ TRASH_ONLY_PATTERNS=(
   'deleteCollectionLists'
   'trashItem'                              # FileManager.trashItem -> Trash
   "${W}recycle[[:space:]]*\\("              # NSWorkspace.recycle -> Trash
+  'performChanges'                         # PHPhotoLibrary.performChanges(AndWait)
+  'ChangeRequest'                          # PHAssetChangeRequest, PHAssetCollectionChangeRequest, ...
+)
+
+READ_ONLY_DIRS=(
+  "StorageCleaner/Scanning/"
+  "StorageCleanerCore/Sources/StorageCleanerCore/Scanning/"
+)
+
+READ_ONLY_PATTERNS=(
+  '\.write\('                                # Data/String.write(to:)
+  'createFile'
+  'createDirectory'
+  'moveItem'
+  'copyItem'
+  'linkItem'
+  'createSymbolicLink'
+  'setAttributes'
+  'setResourceValue'                       # URL.setResourceValue(s)
+  'forWriting'                             # FileHandle(forWritingTo:)
+  'forUpdating'                            # FileHandle(forUpdating:)
+  'startDownloadingUbiquitousItem'
+  'evictUbiquitousItem'
+  'setUbiquitous'
+  'isNetworkAccessAllowed'                 # lets PhotoKit download iCloud originals
+  'PHAssetResourceManager'
+  'requestImage'
+  'requestAVAsset'
+  'requestPlayerItem'
+  'requestExportSession'
+  'requestLivePhoto'
+  'requestContentEditingInput'
 )
 
 FILES=()
@@ -69,6 +104,22 @@ if [[ ${#FILES[@]} -gt 0 ]]; then
       report "$match" "Trash APIs may only be used in ${TRASH_SERVICE} (/${pattern}/)"
     done < <(grep -nHE -- "$pattern" "${FILES[@]}" || true)
   done
+
+  READ_ONLY_FILES=()
+  for file in "${FILES[@]}"; do
+    rel="${file#"$ROOT"/}"
+    for dir in "${READ_ONLY_DIRS[@]}"; do
+      [[ "$rel" == "$dir"* ]] && READ_ONLY_FILES+=("$file")
+    done
+  done
+
+  if [[ ${#READ_ONLY_FILES[@]} -gt 0 ]]; then
+    for pattern in "${READ_ONLY_PATTERNS[@]}"; do
+      while IFS= read -r match; do
+        [[ -n "$match" ]] && report "$match" "Scanner code must be read-only (/${pattern}/)"
+      done < <(grep -nHE -- "$pattern" "${READ_ONLY_FILES[@]}" || true)
+    done
+  fi
 fi
 
 if [[ $violations -gt 0 ]]; then
@@ -76,4 +127,4 @@ if [[ $violations -gt 0 ]]; then
   exit 1
 fi
 
-echo "Safety guard passed: scanned ${#FILES[@]} source file(s); no permanent-deletion APIs, trash APIs only in ${TRASH_SERVICE}."
+echo "Safety guard passed: scanned ${#FILES[@]} source file(s); no permanent-deletion APIs, trash APIs only in ${TRASH_SERVICE}, scanners read-only."
