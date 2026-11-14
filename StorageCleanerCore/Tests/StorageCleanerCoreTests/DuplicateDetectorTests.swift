@@ -150,7 +150,7 @@ final class DuplicateDetectorTests: XCTestCase {
         XCTAssertEqual(groups.count, 1)
         XCTAssertEqual(groups[0].match, .similarPhoto)
         XCTAssertEqual(groups[0].items, [a, b])
-        XCTAssertEqual(groups[0].similarity, 1 - 0.5 * 0.1 / 0.4, accuracy: 0.0001)
+        XCTAssertEqual(groups[0].similarity, 1 - 0.5 * 0.1 / 0.3, accuracy: 0.0001)
     }
 
     func testFeaturePrintsOnlyNeededForPhotosWithNeighbors() {
@@ -163,7 +163,7 @@ final class DuplicateDetectorTests: XCTestCase {
 
     func testCompleteLinkagePreventsChaining() {
         let shots = (0..<3).map { photo("s\($0)", created: t0.addingTimeInterval(Double($0))) }
-        let signatures = Dictionary(uniqueKeysWithValues: zip(shots, [Float(0), 0.3, 0.6]).map { item, x in
+        let signatures = Dictionary(uniqueKeysWithValues: zip(shots, [Float(0), 0.2, 0.4]).map { item, x in
             signature(item) { $0.featurePrint = [x]; $0.featurePrintRevision = 2 }
         })
 

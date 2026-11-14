@@ -1,8 +1,9 @@
 import Foundation
 
 public struct DuplicateOptions: Equatable, Sendable {
-    /// Maximum Vision feature-print distance for two photos to count as near duplicates.
-    public var photoDistanceThreshold: Float = 0.4
+    /// Maximum Vision feature-print distance for two photos to count as near duplicates. Kept
+    /// cautious until calibrated on real libraries: a missed match costs less than a false one.
+    public var photoDistanceThreshold: Float = 0.3
     /// Only photos taken within this interval of each other are compared.
     public var photoTimeWindow: TimeInterval = 15 * 60
     /// Videos are compared only when their durations differ by at most the larger of these.
