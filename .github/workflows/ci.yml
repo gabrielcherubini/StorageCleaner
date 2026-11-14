@@ -15,7 +15,7 @@ jobs:
     name: Safety guard (no permanent deletion)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Guard self-test
         run: scripts/test-safety-guard.sh
       - name: Only TrashService may remove media, and only to Trash / Recently Deleted
@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     container: swift:6.2-noble
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: swift test
         working-directory: StorageCleanerCore
         run: swift test --parallel
@@ -39,7 +39,7 @@ jobs:
       PROJECT: StorageCleaner.xcodeproj
       SCHEME: StorageCleaner
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Toolchain
         run: |
