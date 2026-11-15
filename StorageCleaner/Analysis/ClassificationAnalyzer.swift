@@ -7,6 +7,8 @@ import StorageCleanerCore
 /// `allowDownloads` is on.
 struct ClassificationAnalyzer: Sendable {
     struct Report: Sendable {
+        /// Everything that was classified, so `reviews` can be rebuilt when preferences change.
+        var outcome: ClassificationOutcome
         var reviews: [CategoryReview]
         /// Items left out because their data is only in iCloud and downloads are off.
         var skippedCloudOnly: Int
@@ -19,6 +21,7 @@ struct ClassificationAnalyzer: Sendable {
     let store: MediaIndexStore
     let allowDownloads: Bool
     var options = ClassifierOptions.default
+    var preferences = ReviewPreferences.default
 
     func run(progress: Progress = { _, _, _ in }) async throws -> Report {
         var runner = try await AnalysisRunner.load(store: store, allowDownloads: allowDownloads)
@@ -114,8 +117,10 @@ struct ClassificationAnalyzer: Sendable {
         }
 
         let skipped = runner.skippedCloudOnly(alsoSkipped: needs().skippedCloudOnly)
+        let outcome = MediaClassifier.outcome(items: items, signatures: runner.signatures, options: options)
         return Report(
-            reviews: MediaClassifier.review(items: items, signatures: runner.signatures, options: options),
+            outcome: outcome,
+            reviews: outcome.reviews(preferences: preferences),
             skippedCloudOnly: skipped.count,
             failed: runner.failed.subtracting(skipped).count
         )

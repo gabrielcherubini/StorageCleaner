@@ -104,8 +104,10 @@ final class ReviewTests: XCTestCase {
         let classification = Classification(category: .screenshots, confidence: 0.99, reasons: [.screenshotFlag])
         let review = CategoryReview(
             category: .screenshots,
-            likelyToDelete: [ClassifiedItem(item: copy, classification: classification, isPreselected: true)],
-            likelyToKeep: [ClassifiedItem(item: keeper, classification: classification, isPreselected: false)]
+            likelyToDelete: [ClassifiedItem(item: copy, classification: classification,
+                                           verdict: .likelyDelete(.confident(threshold: 0.8)), isPreselected: true)],
+            likelyToKeep: [ClassifiedItem(item: keeper, classification: classification,
+                                         verdict: .likelyKeep(.belowThreshold(threshold: 0.8)), isPreselected: false)]
         )
         XCTAssertEqual(review.removing([copy.location])?.likelyToKeep.map(\.item), [keeper])
         XCTAssertNil(review.removing([copy.location, keeper.location]))

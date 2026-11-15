@@ -16,6 +16,7 @@ final class ScanCoordinator {
 
     private static let allowDownloadsKey = "allowICloudDownloadsForAnalysis"
     private static let decisionLogKey = "keepDecisionLog"
+    private static let reviewPreferencesKey = "reviewPreferences"
 
     private(set) var progress: Progress?
     private(set) var summary: LibrarySummary = .empty
@@ -42,6 +43,25 @@ final class ScanCoordinator {
     func setKeepsDecisionLog(_ enabled: Bool) {
         keepsDecisionLog = enabled
         UserDefaults.standard.set(enabled, forKey: Self.decisionLogKey)
+    }
+
+    /// Strictness, pre-selection and rules for the category reviews.
+    private(set) var reviewPreferences: ReviewPreferences = ScanCoordinator.storedReviewPreferences()
+
+    func setReviewPreferences(_ preferences: ReviewPreferences) {
+        guard preferences != reviewPreferences else { return }
+        reviewPreferences = preferences
+        UserDefaults.standard.set(try? JSONEncoder().encode(preferences), forKey: Self.reviewPreferencesKey)
+        if var report = classifications {
+            report.reviews = report.outcome.reviews(preferences: preferences)
+            classifications = report
+            Task { await refreshSummary() }
+        }
+    }
+
+    private static func storedReviewPreferences() -> ReviewPreferences {
+        UserDefaults.standard.data(forKey: reviewPreferencesKey)
+            .flatMap { try? JSONDecoder().decode(ReviewPreferences.self, from: $0) } ?? .default
     }
 
     @ObservationIgnored let store: MediaIndexStore
@@ -147,12 +167,23 @@ final class ScanCoordinator {
         (try? await store.heaviestItems(limit: limit)) ?? []
     }
 
+    #if DEBUG
+    /// Sample results for screenshots and previews (`-demo` launch argument).
+    func showDemoResults(duplicates: DuplicateAnalyzer.Report, classifications: ClassificationAnalyzer.Report) async {
+        self.duplicates = duplicates
+        self.classifications = classifications
+        photoAccess = .full
+        await refreshSummary()
+    }
+    #endif
+
     /// Drops items that were moved to Recently Deleted / Trash from the current results. Their
     /// index rows are already gone; the next scan confirms it.
     func removeTrashed(_ locations: Set<MediaLocation>) async {
         guard !locations.isEmpty else { return }
         duplicates?.groups = duplicates?.groups.compactMap { $0.removing(locations) } ?? []
         if var report = classifications {
+            report.outcome = report.outcome.removing(locations)
             report.reviews = report.reviews.compactMap { $0.removing(locations) }
             classifications = report
         }
@@ -242,7 +273,8 @@ final class ScanCoordinator {
     private func runClassification() async throws {
         let source = "Categories"
         progress = Progress(source: source, done: 0, total: nil)
-        let analyzer = ClassificationAnalyzer(store: store, allowDownloads: allowICloudDownloads)
+        let analyzer = ClassificationAnalyzer(store: store, allowDownloads: allowICloudDownloads,
+                                              preferences: reviewPreferences)
         classifications = try await analyzer.run { step, done, total in
             await self.report(source: source, done: done, total: total, detail: step, refreshSummary: false)
         }

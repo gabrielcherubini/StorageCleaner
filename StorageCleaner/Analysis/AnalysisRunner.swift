@@ -119,7 +119,7 @@ struct FolderAccess: FileAccessScoping {
         )
     }
 
-    private func folderURL(for item: MediaItem) -> URL? {
+    func folderURL(for item: MediaItem) -> URL? {
         guard case let .folder(id)? = scopeByKey[item.location.indexKey] else { return nil }
         return folderURLs[id]
     }

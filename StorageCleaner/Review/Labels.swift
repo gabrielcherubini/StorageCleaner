@@ -86,3 +86,86 @@ func formattedDuration(_ seconds: TimeInterval) -> String {
     formatter.zeroFormattingBehavior = .pad
     return formatter.string(from: seconds) ?? "\(Int(seconds))s"
 }
+
+extension CleanupCategory {
+    /// "a screenshot", used in sentences that explain a verdict.
+    var itemNoun: String {
+        switch self {
+        case .largeFiles: return "a large file"
+        case .duplicates: return "a duplicate"
+        case .chatForwards: return "a chat or app forward"
+        case .screenshots: return "a screenshot or screen recording"
+        case .receipts: return "a receipt or document"
+        case .lowQuality: return "a low-quality shot"
+        }
+    }
+}
+
+extension Strictness {
+    var title: String {
+        switch self {
+        case .conservative: return "Conservative"
+        case .balanced: return "Balanced"
+        case .aggressive: return "Aggressive"
+        }
+    }
+}
+
+/// Why an item is in "Likely to delete" or "Likely to keep", in words: a short line for tiles
+/// and a sentence for the viewer.
+struct EntryVerdict: Hashable {
+    let isLikelyDelete: Bool
+    let summary: String
+    let explanation: String
+    let symbolName: String
+
+    init(_ classified: ClassifiedItem, preferences: ReviewPreferences) {
+        let category = classified.classification.category
+        let sure = classified.classification.confidence.formatted(.percent.precision(.fractionLength(0)))
+        let strictness = preferences.strictness(for: category).title
+        func percent(_ value: Double) -> String { value.formatted(.percent.precision(.fractionLength(0))) }
+
+        switch classified.verdict {
+        case let .likelyDelete(.confident(threshold)):
+            isLikelyDelete = true
+            summary = "\(sure) sure · needs \(percent(threshold))"
+            explanation = "Likely to delete: \(sure) sure this is \(category.itemNoun), at or above the \(percent(threshold)) needed with \(strictness) strictness."
+            symbolName = "trash"
+        case let .likelyDelete(.oldScreenshot(days)):
+            isLikelyDelete = true
+            summary = "Older than \(days) days"
+            explanation = "Likely to delete: your rule treats screenshots older than \(days) days as likely to delete."
+            symbolName = "calendar"
+        case .likelyKeep(.protected):
+            isLikelyDelete = false
+            summary = "Protected · \(classified.item.protectionNote ?? "")"
+            explanation = "Kept: \(classified.item.protectionNote ?? "Protected") items are never pre-selected."
+            symbolName = "lock.fill"
+        case let .likelyKeep(.belowThreshold(threshold)):
+            isLikelyDelete = false
+            summary = "\(sure) sure · needs \(percent(threshold))"
+            explanation = "Kept: only \(sure) sure this is \(category.itemNoun), below the \(percent(threshold)) needed with \(strictness) strictness."
+            symbolName = "checkmark.circle"
+        case let .likelyKeep(.recentReceipt(months)):
+            isLikelyDelete = false
+            summary = "Newer than \(months) mo"
+            explanation = "Kept: your rule always keeps receipts newer than \(months) months."
+            symbolName = "calendar"
+        }
+    }
+
+    init(summary: String, explanation: String, symbolName: String, isLikelyDelete: Bool) {
+        self.summary = summary
+        self.explanation = explanation
+        self.symbolName = symbolName
+        self.isLikelyDelete = isLikelyDelete
+    }
+}
+
+extension EntryVerdict {
+    var withPreselectionOffNote: EntryVerdict {
+        EntryVerdict(summary: summary,
+                     explanation: explanation + " Pre-selection is off for this category, so it starts unselected.",
+                     symbolName: symbolName, isLikelyDelete: isLikelyDelete)
+    }
+}
