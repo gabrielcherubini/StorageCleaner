@@ -53,7 +53,24 @@ StorageCleaner never deletes anything permanently.
   **Likely to keep**. Favorites, shared and edited items always go to Likely to keep and are never
   pre-selected. The scoring lives in `StorageCleanerCore/Sources/StorageCleanerCore/Classifiers/`;
   the same read-only and opt-in download rules apply, and results are cached with the signatures.
-- The overview lists everything heaviest first, with a running potential-savings total: large
+## Review and trash
+
+- **Dashboard**: storage used per kind, potential savings per category (each opens its review
+  screen), and the heaviest items.
+- **Review screens**: a grid with size badges for each category (Likely to delete / Likely to
+  keep), large files and heaviest items; duplicate groups with a side-by-side compare view. Filter
+  by size, date and kind; sort by size or date; tap to override any item; bulk select skips
+  favorites, shared and edited items, which are never pre-selected.
+- **Confirm sheet**: shows the exact count and total size, split into Photos (Recently Deleted,
+  30 days, with the system's own prompt) and iCloud Drive files (Trash). The confirmation echoes
+  those numbers, so a changed selection moves nothing.
+- `TrashCoordinator` then calls `TrashService`, opening each iCloud Drive file's folder security
+  scope (`FolderAccess`, shared with analysis), drops moved items from the index and results, and
+  shows a summary reminding that items stay in Recently Deleted / Trash.
+- **Decision log** (optional, off by default): each confirmed action is appended to
+  `Application Support/StorageCleaner/decision-log.json` with what moved where and why.
+
+- The dashboard lists everything heaviest first, with a running potential-savings total: large
   files (50 MB+), duplicates suggested for removal and items likely to delete in each category,
   each item counted once.
 

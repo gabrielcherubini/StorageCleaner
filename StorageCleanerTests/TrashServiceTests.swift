@@ -61,11 +61,46 @@ final class TrashServiceTests: XCTestCase {
         XCTAssertEqual(result.moved.map(\.item), [other])
         XCTAssertEqual(result.failures.map(\.item), [clip])
     }
+
+    func testFilesAreTrashedInsideTheirFolderScope() async throws {
+        let files = FakeFiles()
+        let scope = RecordingScope(files: files)
+        let service = TrashService(photoLibrary: FakePhotoLibrary(), files: files)
+        let plan = TrashPlan(items: [clip, photoA])
+
+        let result = await service.moveToTrash(try plan.confirm(plan.summary), fileAccess: scope)
+
+        XCTAssertEqual(result.moved.count, 2)
+        XCTAssertEqual(scope.scopedItems, [clip], "only files need a folder scope")
+        XCTAssertEqual(scope.trashedWhileInScope, [URL(fileURLWithPath: "/tmp/clip.mov")])
+    }
+}
+
+/// Records which items were trashed while their scope was open.
+final class RecordingScope: FileAccessScoping, @unchecked Sendable {
+    private let lock = NSLock()
+    private let files: FakeFiles
+    private var _scopedItems: [MediaItem] = []
+    private var _trashedWhileInScope: [URL] = []
+
+    init(files: FakeFiles) { self.files = files }
+
+    var scopedItems: [MediaItem] { lock.withLock { _scopedItems } }
+    var trashedWhileInScope: [URL] { lock.withLock { _trashedWhileInScope } }
+
+    func withAccess<T>(to item: MediaItem, _ body: () throws -> T) rethrows -> T {
+        lock.withLock { _scopedItems.append(item) }
+        let before = files.trashed.count
+        let result = try body()
+        let added = files.trashed.dropFirst(before)
+        lock.withLock { _trashedWhileInScope += added }
+        return result
+    }
 }
 
 private struct FakeError: Error {}
 
-private final class FakePhotoLibrary: PhotoLibraryTrashing, @unchecked Sendable {
+final class FakePhotoLibrary: PhotoLibraryTrashing, @unchecked Sendable {
     private let lock = NSLock()
     private var _requests: [[String]] = []
     private let missing: Set<String>
@@ -85,7 +120,7 @@ private final class FakePhotoLibrary: PhotoLibraryTrashing, @unchecked Sendable 
     }
 }
 
-private final class FakeFiles: FileTrashing, @unchecked Sendable {
+final class FakeFiles: FileTrashing, @unchecked Sendable {
     private let lock = NSLock()
     private var _trashed: [URL] = []
     private let failing: Set<URL>

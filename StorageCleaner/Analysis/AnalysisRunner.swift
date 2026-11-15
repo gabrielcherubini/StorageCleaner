@@ -18,35 +18,26 @@ struct AnalysisRunner {
     private(set) var signatures: [String: MediaSignatures]
     private(set) var cloudOnly = Set<String>()
     private(set) var failed = Set<String>()
-    private let scopeByKey: [String: IndexScope]
-    private let folderURLs: [UUID: URL]
+    let folderAccess: FolderAccess
 
     static func load(store: MediaIndexStore, allowDownloads: Bool) async throws -> AnalysisRunner {
         let scoped = try await store.scopedItems()
-        var folderURLs: [UUID: URL] = [:]
-        for folder in try await store.folders() {
-            if let resolved = try? SecurityScopedBookmark.resolve(folder.bookmark) {
-                folderURLs[folder.id] = resolved.url
-            }
-        }
         return AnalysisRunner(
             store: store,
             allowDownloads: allowDownloads,
             items: scoped.map(\.item),
             signatures: try await store.signatures(),
-            scopeByKey: Dictionary(scoped.map { ($0.item.location.indexKey, $0.scope) }, uniquingKeysWith: { first, _ in first }),
-            folderURLs: folderURLs
+            folderAccess: try await FolderAccess.load(store: store, scoped: scoped)
         )
     }
 
     private init(store: MediaIndexStore, allowDownloads: Bool, items: [MediaItem], signatures: [String: MediaSignatures],
-                 scopeByKey: [String: IndexScope], folderURLs: [UUID: URL]) {
+                 folderAccess: FolderAccess) {
         self.store = store
         self.allowDownloads = allowDownloads
         self.items = items
         self.signatures = signatures
-        self.scopeByKey = scopeByKey
-        self.folderURLs = folderURLs
+        self.folderAccess = folderAccess
     }
 
     /// Items that were not counted as failed because their data is only in iCloud.
@@ -75,12 +66,8 @@ struct AnalysisRunner {
                     updated = try await read(.photo(id), item, current)
                 case let .file(url):
                     guard LocalFileGate.mayRead(url, allowDownloads: allowDownloads) else { throw AnalysisError.cloudOnly }
-                    if case let .folder(id)? = scopeByKey[key], let folderURL = folderURLs[id] {
-                        updated = try await SecurityScopedBookmark.withAccess(to: folderURL) {
-                            try await read(.file(url), item, current)
-                        }
-                    } else {
-                        updated = try await read(.file(url), item, current)
+                    updated = try await folderAccess.withAccess(to: item) {
+                        try await read(.file(url), item, current)
                     }
                 }
                 signatures[key] = updated
@@ -102,5 +89,48 @@ struct AnalysisRunner {
         }
         try await store.saveSignatures(unsaved)
         await progress(step, pending.count, pending.count)
+    }
+}
+
+/// The security scope of the picked folder each iCloud Drive item was scanned from. Reading a
+/// file (analysis) or moving it to the Trash (`TrashService`) happens inside that scope; on macOS
+/// the sandbox refuses both outside it.
+struct FolderAccess: FileAccessScoping {
+    private let scopeByKey: [String: IndexScope]
+    private let folderURLs: [UUID: URL]
+
+    init(scopeByKey: [String: IndexScope], folderURLs: [UUID: URL]) {
+        self.scopeByKey = scopeByKey
+        self.folderURLs = folderURLs
+    }
+
+    static func load(store: MediaIndexStore, scoped: [ScopedItem]? = nil) async throws -> FolderAccess {
+        let items: [ScopedItem]
+        if let scoped { items = scoped } else { items = try await store.scopedItems() }
+        var folderURLs: [UUID: URL] = [:]
+        for folder in try await store.folders() {
+            if let resolved = try? SecurityScopedBookmark.resolve(folder.bookmark) {
+                folderURLs[folder.id] = resolved.url
+            }
+        }
+        return FolderAccess(
+            scopeByKey: Dictionary(items.map { ($0.item.location.indexKey, $0.scope) }, uniquingKeysWith: { first, _ in first }),
+            folderURLs: folderURLs
+        )
+    }
+
+    private func folderURL(for item: MediaItem) -> URL? {
+        guard case let .folder(id)? = scopeByKey[item.location.indexKey] else { return nil }
+        return folderURLs[id]
+    }
+
+    func withAccess<T>(to item: MediaItem, _ body: () throws -> T) rethrows -> T {
+        guard let url = folderURL(for: item) else { return try body() }
+        return try SecurityScopedBookmark.withAccess(to: url, body)
+    }
+
+    func withAccess<T>(to item: MediaItem, _ body: () async throws -> T) async rethrows -> T {
+        guard let url = folderURL(for: item) else { return try await body() }
+        return try await SecurityScopedBookmark.withAccess(to: url, body)
     }
 }

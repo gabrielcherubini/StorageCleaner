@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 struct ContentView: View {
     @Environment(ScanCoordinator.self) private var scanner
+    @Environment(ThumbnailLoader.self) private var thumbnails
     @State private var isPickingFolder = false
 
     var body: some View {
@@ -33,23 +34,16 @@ struct ContentView: View {
                     Section("Scanning") { ScanProgressRow(progress: progress) }
                 }
 
-                Section("Overview") { SummaryRows(summary: scanner.summary) }
+                StorageSection(summary: scanner.summary)
+
+                SavingsSection()
 
                 AnalysisSettingsSection()
 
-                DuplicatesSection()
-
-                CategoriesSection()
-
-                Section("Heaviest items") {
-                    if scanner.summary.heaviest.isEmpty {
-                        Text("Run a scan to see your largest photos, videos and audio files.")
-                            .foregroundStyle(.secondary)
-                    }
-                    ForEach(scanner.summary.heaviest) { item in
-                        MediaRow(item: item)
-                    }
-                }
+                HeaviestSection()
+            }
+            .navigationDestination(for: ReviewRoute.self) { route in
+                ReviewDestination(route: route)
             }
             .navigationTitle("StorageCleaner")
             .toolbar {
@@ -67,6 +61,7 @@ struct ContentView: View {
                 }
             }
             .task { await scanner.load() }
+            .onChange(of: scanner.folders) { thumbnails.resetAccess() }
         }
     }
 }
@@ -139,31 +134,94 @@ private struct ScanProgressRow: View {
     }
 }
 
-private struct SummaryRows: View {
+private struct StorageSection: View {
     let summary: LibrarySummary
 
     var body: some View {
-        LabeledContent("Scanned", value: "\(summary.itemCount) items · \(formattedBytes(summary.totalBytes))")
-        ForEach(MediaKind.allCases, id: \.self) { kind in
-            LabeledContent(kind.title, value: "\(summary.count(of: kind)) · \(formattedBytes(summary.bytes(of: kind)))")
+        Section("Storage used") {
+            LabeledContent("Scanned", value: "\(summary.itemCount) items · \(formattedBytes(summary.totalBytes))")
+            ForEach(MediaKind.allCases, id: \.self) { kind in
+                VStack(alignment: .leading, spacing: 4) {
+                    LabeledContent {
+                        Text("\(summary.count(of: kind)) · \(formattedBytes(summary.bytes(of: kind)))").monospacedDigit()
+                    } label: {
+                        Label(kind.title, systemImage: kind.symbolName)
+                    }
+                    ProgressView(value: summary.totalBytes > 0 ? Double(summary.bytes(of: kind)) / Double(summary.totalBytes) : 0)
+                }
+            }
         }
-        LabeledContent("Potential savings") {
-            Text(formattedBytes(summary.potentialSavings.totalBytes)).bold()
+    }
+}
+
+/// Potential savings per category, each opening its review screen.
+private struct SavingsSection: View {
+    @Environment(ScanCoordinator.self) private var scanner
+
+    var body: some View {
+        let savings = scanner.summary.potentialSavings
+        Section {
+            LabeledContent("Potential savings") {
+                Text(formattedBytes(savings.totalBytes)).bold().monospacedDigit()
+            }
+
+            NavigationLink(value: ReviewRoute.largeFiles) {
+                row(.largeFiles, savings: savings)
+            }
+
+            if scanner.duplicates != nil {
+                NavigationLink(value: ReviewRoute.duplicates) { row(.duplicates, savings: savings) }
+            } else {
+                HStack {
+                    Label(CleanupCategory.duplicates.title, systemImage: CleanupCategory.duplicates.symbolName)
+                    Spacer()
+                    Button("Find Duplicates") { scanner.findDuplicates() }
+                        .disabled(scanner.isScanning || scanner.summary.itemCount == 0)
+                }
+            }
+            if let report = scanner.duplicates { notes(skipped: report.skippedCloudOnly, failed: report.failed) }
+
+            if scanner.classifications != nil {
+                ForEach(CleanupCategory.classified, id: \.self) { category in
+                    NavigationLink(value: ReviewRoute.category(category)) { row(category, savings: savings) }
+                }
+            } else {
+                HStack {
+                    Label("Forwards, screenshots, receipts, low quality", systemImage: "square.grid.2x2")
+                    Spacer()
+                    Button("Analyze") { scanner.analyzeCategories() }
+                        .disabled(scanner.isScanning || scanner.summary.itemCount == 0)
+                }
+            }
+            if let report = scanner.classifications { notes(skipped: report.skippedCloudOnly, failed: report.failed) }
+        } header: {
+            Text("Cleanup")
+        } footer: {
+            Text("Sizes count items likely to delete; each item is counted once. Favorites, shared and edited items are never pre-selected. You review and confirm everything before anything moves to Recently Deleted or the Trash.")
         }
-        LabeledContent(
-            "Duplicates",
-            value: "\(summary.potentialSavings.count(in: .duplicates)) · \(formattedBytes(summary.potentialSavings.bytes(in: .duplicates)))"
-        )
-        ForEach(CleanupCategory.classified, id: \.self) { category in
-            LabeledContent(
-                category.title,
-                value: "\(summary.potentialSavings.count(in: category)) · \(formattedBytes(summary.potentialSavings.bytes(in: category)))"
-            )
+    }
+
+    private func row(_ category: CleanupCategory, savings: SavingsTally) -> some View {
+        HStack {
+            Label(category.title, systemImage: category.symbolName)
+            Spacer()
+            VStack(alignment: .trailing) {
+                Text(formattedBytes(savings.bytes(in: category))).monospacedDigit()
+                Text("\(savings.count(in: category)) items").font(.caption).foregroundStyle(.secondary)
+            }
         }
-        LabeledContent(
-            "Large files (50 MB+)",
-            value: "\(summary.potentialSavings.count(in: .largeFiles)) · \(formattedBytes(summary.potentialSavings.bytes(in: .largeFiles)))"
-        )
+    }
+
+    @ViewBuilder
+    private func notes(skipped: Int, failed: Int) -> some View {
+        if skipped > 0 {
+            Label("\(skipped) items are only in iCloud and were not fully checked.", systemImage: "icloud")
+                .font(.footnote).foregroundStyle(.secondary)
+        }
+        if failed > 0 {
+            Label("\(failed) items could not be read.", systemImage: "exclamationmark.triangle")
+                .font(.footnote).foregroundStyle(.secondary)
+        }
     }
 }
 
@@ -176,79 +234,33 @@ private struct AnalysisSettingsSection: View {
                 get: { scanner.allowICloudDownloads },
                 set: { scanner.setAllowICloudDownloads($0) }
             ))
+            Toggle("Keep a decision log", isOn: Binding(
+                get: { scanner.keepsDecisionLog },
+                set: { scanner.setKeepsDecisionLog($0) }
+            ))
         } header: {
-            Text("Analysis")
+            Text("Settings")
         } footer: {
-            Text("Analysis only reads your media. With downloads off, items stored only in iCloud are skipped.")
+            Text("Analysis only reads your media; with downloads off, items stored only in iCloud are skipped. The decision log is a local JSON file listing what was moved and why (\(DecisionLogStore.standard.url.path)).")
         }
     }
 }
 
-private struct DuplicatesSection: View {
+private struct HeaviestSection: View {
     @Environment(ScanCoordinator.self) private var scanner
 
     var body: some View {
-        Section {
-            Button("Find Duplicates", systemImage: "square.on.square") { scanner.findDuplicates() }
-                .disabled(scanner.isScanning || scanner.summary.itemCount == 0)
-
-            if let report = scanner.duplicates {
-                LabeledContent(
-                    "\(report.groups.count) groups",
-                    value: "\(formattedBytes(report.groups.map(\.reclaimableBytes).reduce(0, +))) reclaimable"
-                )
-                if report.skippedCloudOnly > 0 {
-                    Label("\(report.skippedCloudOnly) items are only in iCloud and were not checked.", systemImage: "icloud")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-                if report.failed > 0 {
-                    Label("\(report.failed) items could not be read.", systemImage: "exclamationmark.triangle")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }
-                ForEach(report.groups.prefix(100)) { group in
-                    DuplicateGroupRow(group: group)
-                }
+        Section("Heaviest items") {
+            if scanner.summary.heaviest.isEmpty {
+                Text("Run a scan to see your largest photos, videos and audio files.")
+                    .foregroundStyle(.secondary)
             }
-        } header: {
-            Text("Duplicates")
-        } footer: {
-            Text("Exact copies are matched by size and SHA-256; similar photos, videos and audio by content. The suggested keeper is a favorite, then the highest resolution, then the oldest copy. Favorites, shared and edited items are never suggested for removal.")
-        }
-    }
-}
-
-private struct DuplicateGroupRow: View {
-    let group: DuplicateGroup
-
-    var body: some View {
-        DisclosureGroup {
-            ForEach(group.items) { item in
-                HStack {
-                    MediaRow(item: item)
-                    badge(for: item)
-                }
+            ForEach(scanner.summary.heaviest.prefix(8)) { item in
+                MediaRow(item: item)
             }
-        } label: {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text(group.keeper.filename ?? "Untitled").lineLimit(1)
-                    Text("\(group.match.title) · \(group.items.count) copies")
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer()
-                Text(formattedBytes(group.reclaimableBytes)).monospacedDigit()
+            if !scanner.summary.heaviest.isEmpty {
+                NavigationLink("Review heaviest items", value: ReviewRoute.heaviest)
             }
-        }
-    }
-
-    @ViewBuilder
-    private func badge(for item: MediaItem) -> some View {
-        if item.location == group.keeper.location {
-            Text("Keep").font(.caption.bold()).foregroundStyle(.green)
-        } else if item.isProtected {
-            Text("Protected").font(.caption.bold()).foregroundStyle(.secondary)
-        } else {
-            Text("Suggested to remove").font(.caption.bold()).foregroundStyle(.orange)
         }
     }
 }
@@ -327,5 +339,9 @@ extension MediaItem {
 }
 
 #Preview {
-    ContentView().environment(ScanCoordinator(container: try! IndexSchema.makeContainer(inMemory: true)))
+    let scanner = ScanCoordinator(container: try! IndexSchema.makeContainer(inMemory: true))
+    return ContentView()
+        .environment(scanner)
+        .environment(TrashCoordinator(scanner: scanner))
+        .environment(ThumbnailLoader(store: scanner.store))
 }

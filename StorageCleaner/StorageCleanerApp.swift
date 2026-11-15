@@ -5,6 +5,8 @@ import SwiftUI
 struct StorageCleanerApp: App {
     private let container: ModelContainer
     @State private var scanner: ScanCoordinator
+    @State private var trash: TrashCoordinator
+    @State private var thumbnails: ThumbnailLoader
 
     init() {
         let container: ModelContainer
@@ -16,13 +18,18 @@ struct StorageCleanerApp: App {
             container = try! IndexSchema.makeContainer(inMemory: true)
         }
         self.container = container
-        _scanner = State(initialValue: ScanCoordinator(container: container))
+        let scanner = ScanCoordinator(container: container)
+        _scanner = State(initialValue: scanner)
+        _trash = State(initialValue: TrashCoordinator(scanner: scanner))
+        _thumbnails = State(initialValue: ThumbnailLoader(store: scanner.store))
     }
 
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(scanner)
+                .environment(trash)
+                .environment(thumbnails)
         }
         .modelContainer(container)
     }

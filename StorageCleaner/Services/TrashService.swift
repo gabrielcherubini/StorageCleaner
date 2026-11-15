@@ -20,7 +20,8 @@ final class TrashService: Sendable {
         self.files = files
     }
 
-    func moveToTrash(_ confirmed: ConfirmedTrashPlan) async -> TrashResult {
+    /// `fileAccess` opens the security scope of the folder each iCloud Drive file was scanned from.
+    func moveToTrash(_ confirmed: ConfirmedTrashPlan, fileAccess: any FileAccessScoping = NoFileAccessScope()) async -> TrashResult {
         var result = TrashResult()
         let plan = confirmed.plan
 
@@ -44,7 +45,7 @@ final class TrashService: Sendable {
         for item in plan.fileItems {
             guard case let .file(url) = item.location else { continue }
             do {
-                let trashedURL = try files.moveToTrash(url)
+                let trashedURL = try fileAccess.withAccess(to: item) { try files.moveToTrash(url) }
                 result.moved.append(.init(item: item, destination: .trash(trashedURL)))
             } catch {
                 result.failures.append(.init(item: item, reason: .systemError(String(describing: error))))
@@ -86,6 +87,14 @@ protocol PhotoLibraryTrashing: Sendable {
     /// Moves the assets to Recently Deleted. Returns identifiers that no longer exist in the library.
     /// Throws if the user declines the system confirmation or the change fails.
     func moveToRecentlyDeleted(localIdentifiers: [String]) async throws -> Set<String>
+}
+
+protocol FileAccessScoping: Sendable {
+    func withAccess<T>(to item: MediaItem, _ body: () throws -> T) rethrows -> T
+}
+
+struct NoFileAccessScope: FileAccessScoping {
+    func withAccess<T>(to item: MediaItem, _ body: () throws -> T) rethrows -> T { try body() }
 }
 
 protocol FileTrashing: Sendable {
