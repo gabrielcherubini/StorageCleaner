@@ -127,7 +127,7 @@ struct MediaTile: View {
                 Text(caption)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
                 if let detail = entry.detail, !detail.isEmpty, entry.verdict != nil {
                     Text(detail)
                         .font(.caption2)

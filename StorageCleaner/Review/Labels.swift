@@ -128,7 +128,7 @@ struct EntryVerdict: Hashable {
         switch classified.verdict {
         case let .likelyDelete(.confident(threshold)):
             isLikelyDelete = true
-            summary = "\(sure) sure · needs \(percent(threshold))"
+            summary = "\(sure) · needs \(percent(threshold))"
             explanation = "Likely to delete: \(sure) sure this is \(category.itemNoun), at or above the \(percent(threshold)) needed with \(strictness) strictness."
             symbolName = "trash"
         case let .likelyDelete(.oldScreenshot(days)):
@@ -143,7 +143,7 @@ struct EntryVerdict: Hashable {
             symbolName = "lock.fill"
         case let .likelyKeep(.belowThreshold(threshold)):
             isLikelyDelete = false
-            summary = "\(sure) sure · needs \(percent(threshold))"
+            summary = "\(sure) · needs \(percent(threshold))"
             explanation = "Kept: only \(sure) sure this is \(category.itemNoun), below the \(percent(threshold)) needed with \(strictness) strictness."
             symbolName = "checkmark.circle"
         case let .likelyKeep(.recentReceipt(months)):

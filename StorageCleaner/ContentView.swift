@@ -151,12 +151,14 @@ private struct StorageBar: View {
             .clipShape(Capsule())
 
             HStack(spacing: 14) {
-                ForEach(MediaKind.allCases, id: \.self) { kind in
+                ForEach(MediaKind.allCases.filter { summary.bytes(of: $0) > 0 }, id: \.self) { kind in
                     HStack(spacing: 5) {
                         Circle().fill(Color.accentColor.opacity(Self.shades[kind] ?? 1)).frame(width: 7, height: 7)
                         Text(kind.title)
                         Text(formattedBytes(summary.bytes(of: kind))).foregroundStyle(.secondary).monospacedDigit()
                     }
+                    .lineLimit(1)
+                    .fixedSize()
                 }
             }
             .font(.caption)
