@@ -11,7 +11,11 @@ struct StorageCleanerApp: App {
     init() {
         let container: ModelContainer
         do {
+            #if DEBUG
+            container = try IndexSchema.makeContainer(inMemory: DemoMode.isActive)
+            #else
             container = try IndexSchema.makeContainer()
+            #endif
         } catch {
             // The index is only a cache of scan results, so an unreadable store falls back to an
             // in-memory one and the next scan rebuilds it.
@@ -22,6 +26,11 @@ struct StorageCleanerApp: App {
         _scanner = State(initialValue: scanner)
         _trash = State(initialValue: TrashCoordinator(scanner: scanner))
         _thumbnails = State(initialValue: ThumbnailLoader(store: scanner.store))
+        #if DEBUG
+        if DemoMode.isActive {
+            Task { await DemoMode.populate(scanner) }
+        }
+        #endif
     }
 
     var body: some Scene {

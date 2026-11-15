@@ -6,6 +6,7 @@ enum ReviewRoute: Hashable {
     case category(CleanupCategory)
     case largeFiles
     case heaviest
+    case rules
 }
 
 struct ReviewDestination: View {
@@ -13,21 +14,28 @@ struct ReviewDestination: View {
     let route: ReviewRoute
 
     var body: some View {
+        content.id(route)
+    }
+
+    @ViewBuilder
+    private var content: some View {
         switch route {
         case .duplicates:
             DuplicatesReviewScreen()
         case let .category(category):
             let review = scanner.classifications?.reviews.first { $0.category == category }
+            let preferences = scanner.reviewPreferences
             GridReviewScreen(
                 title: category.title,
                 explanation: category.explanation,
                 sections: [
-                    ReviewSection(id: "delete", title: "Likely to delete", tint: .orange,
-                                  entries: review?.likelyToDelete.map(ReviewEntry.init) ?? []),
-                    ReviewSection(id: "keep", title: "Likely to keep", tint: .green,
-                                  entries: review?.likelyToKeep.map(ReviewEntry.init) ?? []),
+                    ReviewSection(id: "delete", title: "Likely to delete", tint: .primary,
+                                  entries: review?.likelyToDelete.map { ReviewEntry($0, preferences: preferences) } ?? []),
+                    ReviewSection(id: "keep", title: "Likely to keep", tint: .primary,
+                                  entries: review?.likelyToKeep.map { ReviewEntry($0, preferences: preferences) } ?? []),
                 ],
-                preselected: review?.likelyToDelete.filter(\.isPreselected).map(\.item) ?? []
+                preselected: review?.preselectedItems ?? [],
+                rulesCategory: category
             )
         case .largeFiles:
             LoadedItemsReviewScreen(title: CleanupCategory.largeFiles.title,
@@ -37,6 +45,8 @@ struct ReviewDestination: View {
             LoadedItemsReviewScreen(title: "Heaviest items",
                                     explanation: "Everything StorageCleaner indexed, largest first. Nothing is pre-selected.",
                                     reason: nil) { await scanner.heaviestItems() }
+        case .rules:
+            ReviewRulesView(focus: nil)
         }
     }
 }
@@ -69,7 +79,9 @@ private struct LoadedItemsReviewScreen: View {
                     preselected: []
                 )
             } else {
-                ProgressView().navigationTitle(title)
+                ProgressView("Loading…")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .navigationTitle(title)
             }
         }
         .task(id: scanner.summary.itemCount) { items = await load() }
@@ -78,25 +90,26 @@ private struct LoadedItemsReviewScreen: View {
 
 /// Grid review for one category: sections (Likely to delete / Likely to keep), filters, bulk
 /// select, per-item override, then the confirm sheet.
+///
+/// The screen's body never reads the selection; tiles and the selection bar do. Toggling an
+/// item therefore doesn't rebuild the grid, and the scroll position stays put.
 struct GridReviewScreen: View {
     @Environment(TrashCoordinator.self) private var trash
     let title: String
     let explanation: String
     let sections: [ReviewSection]
+    let preselected: [MediaItem]
+    /// The category whose review rules the toolbar button opens; `nil` hides the button.
+    var rulesCategory: CleanupCategory?
 
-    @State private var selection: ReviewSelection
+    @State private var store = SelectionStore()
     @State private var filter = ReviewFilter()
     @State private var visibleSection = "all"
     @State private var pending: PendingTrash?
     @State private var outcome: TrashCoordinator.Outcome?
     @State private var bulkNote: String?
-
-    init(title: String, explanation: String, sections: [ReviewSection], preselected: [MediaItem]) {
-        self.title = title
-        self.explanation = explanation
-        self.sections = sections
-        _selection = State(initialValue: ReviewSelection(preselected: preselected))
-    }
+    @State private var viewer: ViewerRequest?
+    @State private var showsRules = false
 
     private var allEntries: [ReviewEntry] { sections.flatMap(\.entries) }
 
@@ -105,12 +118,13 @@ struct GridReviewScreen: View {
         return filter.apply(to: section.entries, item: \.item)
     }
 
-    private var shownItems: [MediaItem] { sections.flatMap(shown).map(\.item) }
+    private var shownEntries: [ReviewEntry] { sections.flatMap(shown) }
+    private var shownItems: [MediaItem] { shownEntries.map(\.item) }
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(explanation).font(.callout).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 20) {
+                Text(explanation).font(.subheadline).foregroundStyle(.secondary)
 
                 if sections.count > 1 {
                     Picker("Show", selection: $visibleSection) {
@@ -124,21 +138,35 @@ struct GridReviewScreen: View {
                 FilterBar(filter: $filter)
 
                 if allEntries.isEmpty {
-                    ContentUnavailableView("Nothing here", systemImage: "checkmark.circle",
+                    ContentUnavailableView("Nothing to review", systemImage: "checkmark.circle",
                                            description: Text("No items in this category right now."))
+                } else if shownEntries.isEmpty {
+                    ContentUnavailableView {
+                        Label("No matching items", systemImage: "line.3.horizontal.decrease.circle")
+                    } description: {
+                        Text("Try a different size, date or kind filter.")
+                    } actions: {
+                        Button("Clear Filters") { filter = ReviewFilter(); visibleSection = "all" }
+                    }
                 }
 
                 ForEach(sections) { section in
                     let entries = shown(section)
                     if !entries.isEmpty {
                         if sections.count > 1 {
-                            Text("\(section.title) · \(entries.count)")
-                                .font(.headline).foregroundStyle(section.tint)
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(section.title).font(.headline).foregroundStyle(section.tint)
+                                Text("\(entries.count)").font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
+                                Spacer()
+                                Text(formattedBytes(entries.map(\.item).totalByteSize))
+                                    .font(.subheadline.monospacedDigit()).foregroundStyle(.secondary)
+                            }
                         }
-                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 130), spacing: 12)], spacing: 16) {
+                        LazyVGrid(columns: Theme.gridColumns, spacing: 18) {
                             ForEach(entries) { entry in
-                                MediaTile(entry: entry, isSelected: selection.isSelected(entry.item))
-                                    .onTapGesture { selection.toggle(entry.item) }
+                                SelectableTile(store: store, entry: entry) {
+                                    viewer = ViewerRequest(entries: shownEntries, start: entry.id)
+                                }
                             }
                         }
                     }
@@ -147,32 +175,86 @@ struct GridReviewScreen: View {
             .padding()
         }
         .navigationTitle(title)
+        .toolbar {
+            if rulesCategory != nil {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Review Rules", systemImage: "slider.horizontal.3") { showsRules = true }
+                }
+            }
+        }
+        .sheet(isPresented: $showsRules) {
+            if let rulesCategory {
+                NavigationStack {
+                    ReviewRulesView(focus: rulesCategory)
+                        .toolbar {
+                            ToolbarItem(placement: .confirmationAction) { Button("Done") { showsRules = false } }
+                        }
+                }
+                #if os(macOS)
+                .frame(minWidth: 460, minHeight: 520)
+                #endif
+            }
+        }
         .safeAreaInset(edge: .bottom) {
             SelectionBar(
-                selection: selection,
+                store: store,
                 allItems: allEntries.map(\.item),
                 shownItems: shownItems,
                 note: bulkNote,
                 isBusy: trash.isTrashing,
                 onSelectAll: {
-                    let skipped = selection.selectAll(shownItems)
+                    let skipped = store.selectAll(shownItems)
                     bulkNote = skipped > 0 ? "\(skipped) favorite, shared or edited items were not selected." : nil
                 },
                 onDeselectAll: {
-                    selection.deselectAll(shownItems)
+                    store.deselectAll(shownItems)
                     bulkNote = nil
                 },
-                onReview: {
-                    let plan = selection.plan(from: allEntries.map(\.item))
-                    let reasons = Dictionary(allEntries.compactMap { entry in entry.reason.map { (entry.item.location, $0) } },
-                                             uniquingKeysWith: { first, _ in first })
-                    pending = PendingTrash(plan: plan, reasons: reasons)
-                }
+                onReview: reviewSelection
             )
         }
         .trashFlow(pending: $pending, outcome: $outcome) { moved in
-            selection.deselect(moved)
+            store.deselect(moved)
         }
+        .mediaViewer($viewer, selection: store.binding)
+        .onChange(of: Set(preselected.map(\.location)), initial: true) {
+            store.seed(preselected)
+        }
+        #if DEBUG
+        .task(id: allEntries.count) { await openDemoScreen() }
+        #endif
+    }
+
+    private func reviewSelection() {
+        let plan = store.selection.plan(from: allEntries.map(\.item))
+        let reasons = Dictionary(allEntries.compactMap { entry in entry.reason.map { (entry.item.location, $0) } },
+                                 uniquingKeysWith: { first, _ in first })
+        pending = PendingTrash(plan: plan, reasons: reasons)
+    }
+
+    #if DEBUG
+    private func openDemoScreen() async {
+        guard !allEntries.isEmpty, viewer == nil, pending == nil else { return }
+        try? await Task.sleep(for: .milliseconds(600))
+        switch DemoMode.screen {
+        case "viewer": if let first = allEntries.first { viewer = ViewerRequest(entries: allEntries, start: first.id) }
+        case "confirm": if !store.selection.selected.isEmpty { reviewSelection() }
+        default: break
+        }
+    }
+    #endif
+}
+
+/// A tile that reads its own selection state, so a toggle re-renders just the tiles.
+private struct SelectableTile: View {
+    let store: SelectionStore
+    let entry: ReviewEntry
+    var badge: TileBadge?
+    let onOpen: () -> Void
+
+    var body: some View {
+        MediaTile(entry: entry, isSelected: store.isSelected(entry.item), badge: badge,
+                  onOpen: onOpen, onToggle: { store.toggle(entry.item) })
     }
 }
 
@@ -181,13 +263,18 @@ struct DuplicatesReviewScreen: View {
     @Environment(ScanCoordinator.self) private var scanner
     @Environment(TrashCoordinator.self) private var trash
 
-    @State private var selection: ReviewSelection?
+    @State private var store = SelectionStore()
     @State private var filter = ReviewFilter()
     @State private var pending: PendingTrash?
     @State private var outcome: TrashCoordinator.Outcome?
     @State private var bulkNote: String?
+    @State private var viewer: ViewerRequest?
 
     private var groups: [DuplicateGroup] { scanner.duplicates?.groups ?? [] }
+
+    private var preselected: [MediaItem] {
+        scanner.reviewPreferences.preselects(.duplicates) ? groups.flatMap(\.suggestedForRemoval) : []
+    }
 
     /// A group is shown when any of its items passes the filter.
     private var shownGroups: [DuplicateGroup] {
@@ -198,7 +285,6 @@ struct DuplicatesReviewScreen: View {
     }
 
     var body: some View {
-        let current = selection ?? ReviewSelection(preselected: groups.flatMap(\.suggestedForRemoval))
         List {
             Section {
                 Text(CleanupCategory.duplicates.explanation).font(.callout).foregroundStyle(.secondary)
@@ -213,24 +299,20 @@ struct DuplicatesReviewScreen: View {
                     ScrollView(.horizontal) {
                         HStack(alignment: .top, spacing: 12) {
                             ForEach(group.items) { item in
-                                MediaTile(entry: ReviewEntry(item: item, reason: .duplicate(of: group)),
-                                          isSelected: current.isSelected(item),
-                                          badge: item.location == group.keeper.location ? .keep : nil)
-                                    .frame(width: 130)
-                                    .onTapGesture { toggle(item, in: current) }
+                                SelectableTile(store: store, entry: ReviewEntry(duplicate: item, in: group),
+                                               badge: item.location == group.keeper.location ? .keep : nil) {
+                                    viewer = ViewerRequest(
+                                        entries: group.items.map { ReviewEntry(duplicate: $0, in: group) },
+                                        start: item.location)
+                                }
+                                .frame(width: 120)
                             }
                         }
                         .padding(.vertical, 4)
                     }
-                    if group.selectsEveryCopy(current) {
-                        Label("Every copy in this group is selected; none would be left.", systemImage: "exclamationmark.triangle")
-                            .font(.caption).foregroundStyle(.orange)
-                    }
+                    EmptiedGroupWarning(store: store, group: group)
                     NavigationLink("Compare side by side") {
-                        DuplicateCompareView(group: group, selection: Binding(
-                            get: { selection ?? current },
-                            set: { selection = $0 }
-                        ))
+                        DuplicateCompareView(group: group, selection: store.binding)
                     }
                 } header: {
                     HStack {
@@ -242,27 +324,34 @@ struct DuplicatesReviewScreen: View {
             }
         }
         .navigationTitle("Duplicates")
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Menu("Review Rules", systemImage: "slider.horizontal.3") {
+                    Toggle("Pre-select extra copies", isOn: Binding(
+                        get: { scanner.reviewPreferences.preselects(.duplicates) },
+                        set: { var preferences = scanner.reviewPreferences
+                               preferences.preselect[.duplicates] = $0
+                               scanner.setReviewPreferences(preferences) }
+                    ))
+                }
+            }
+        }
         .safeAreaInset(edge: .bottom) {
             let items = groups.flatMap(\.items)
             let shownItems = shownGroups.flatMap(\.items)
             SelectionBar(
-                selection: current,
+                store: store,
                 allItems: items,
                 shownItems: shownItems,
                 selectAllTitle: "Select suggested",
                 note: bulkNote,
                 isBusy: trash.isTrashing,
                 onSelectAll: {
-                    var updated = current
-                    let suggested = shownGroups.flatMap(\.suggestedForRemoval)
-                    updated.selectAll(suggested)
-                    selection = updated
+                    store.selectAll(shownGroups.flatMap(\.suggestedForRemoval))
                     bulkNote = "Keepers and favorite, shared or edited copies were not selected."
                 },
                 onDeselectAll: {
-                    var updated = current
-                    updated.deselectAll(shownItems)
-                    selection = updated
+                    store.deselectAll(shownItems)
                     bulkNote = nil
                 },
                 onReview: {
@@ -272,9 +361,9 @@ struct DuplicatesReviewScreen: View {
                             reasons[item.location] = .duplicate(of: group)
                         }
                     }
-                    let emptied = groups.filter { $0.selectsEveryCopy(current) }.count
+                    let emptied = groups.filter { $0.selectsEveryCopy(store.selection) }.count
                     pending = PendingTrash(
-                        plan: current.plan(from: items),
+                        plan: store.selection.plan(from: items),
                         reasons: reasons,
                         warnings: emptied > 0 ? ["\(emptied) duplicate \(emptied == 1 ? "group loses" : "groups lose") every copy."] : []
                     )
@@ -282,16 +371,24 @@ struct DuplicatesReviewScreen: View {
             )
         }
         .trashFlow(pending: $pending, outcome: $outcome) { moved in
-            var updated = selection ?? current
-            updated.deselect(moved)
-            selection = updated
+            store.deselect(moved)
+        }
+        .mediaViewer($viewer, selection: store.binding)
+        .onChange(of: Set(preselected.map(\.location)), initial: true) {
+            store.seed(preselected)
         }
     }
+}
 
-    private func toggle(_ item: MediaItem, in current: ReviewSelection) {
-        var updated = current
-        updated.toggle(item)
-        selection = updated
+private struct EmptiedGroupWarning: View {
+    let store: SelectionStore
+    let group: DuplicateGroup
+
+    var body: some View {
+        if group.selectsEveryCopy(store.selection) {
+            Label("Every copy in this group is selected; none would be left.", systemImage: "exclamationmark.triangle")
+                .font(.caption).foregroundStyle(.orange)
+        }
     }
 }
 
@@ -305,8 +402,7 @@ struct DuplicateCompareView: View {
             HStack(alignment: .top, spacing: 16) {
                 ForEach(group.items) { item in
                     VStack(alignment: .leading, spacing: 8) {
-                        ThumbnailView(item: item, maxPixelSize: 900)
-                            .aspectRatio(contentMode: .fit)
+                        ThumbnailView(item: item, maxPixelSize: 900, contentMode: .fit)
                             .frame(width: 300, height: 300)
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                         status(for: item)
@@ -332,7 +428,7 @@ struct DuplicateCompareView: View {
         } else if item.isProtected {
             Label("Protected: \(item.protectionNote ?? "")", systemImage: "lock.fill").foregroundStyle(.secondary)
         } else {
-            Label("Suggested to remove", systemImage: "trash").foregroundStyle(.orange)
+            Label("Suggested to remove", systemImage: "trash").foregroundStyle(.secondary)
         }
     }
 
@@ -408,7 +504,7 @@ struct FilterBar: View {
 
 /// Bottom bar: selection count and size, bulk select, and the button that opens the confirm sheet.
 struct SelectionBar: View {
-    let selection: ReviewSelection
+    let store: SelectionStore
     let allItems: [MediaItem]
     let shownItems: [MediaItem]
     var selectAllTitle = "Select all shown"
@@ -419,8 +515,8 @@ struct SelectionBar: View {
     let onReview: () -> Void
 
     var body: some View {
-        let selected = allItems.filter(selection.isSelected)
-        let hidden = selected.count - shownItems.filter(selection.isSelected).count
+        let selected = allItems.filter(store.isSelected)
+        let hidden = selected.count - shownItems.filter(store.isSelected).count
         VStack(alignment: .leading, spacing: 6) {
             if let note {
                 Text(note).font(.caption).foregroundStyle(.secondary)
@@ -450,8 +546,10 @@ struct SelectionBar: View {
                 .disabled(selected.isEmpty || isBusy)
             }
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.vertical, 12)
         .background(.bar)
+        .overlay(alignment: .top) { Divider() }
     }
 }
 

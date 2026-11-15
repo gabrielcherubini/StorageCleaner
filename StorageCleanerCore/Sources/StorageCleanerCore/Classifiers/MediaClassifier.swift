@@ -182,18 +182,30 @@ public enum MediaClassifier {
         return result
     }
 
+    /// Classifies every item once; the outcome can be re-split whenever review preferences change.
+    public static func outcome(
+        items: [MediaItem],
+        signatures: [String: MediaSignatures],
+        options: ClassifierOptions = .default
+    ) -> ClassificationOutcome {
+        let valid = DuplicateDetector.validSignatures(items: items, signatures: signatures)
+        let classifications = classify(items: items, signatures: signatures, options: options)
+        return ClassificationOutcome(
+            items: items
+                .filter { classifications[$0.location.indexKey] != nil }
+                .map { DuplicateDetector.enriched($0, valid[$0.location.indexKey]) },
+            classifications: classifications
+        )
+    }
+
     /// Classifies and splits every category into "Likely to delete" and "Likely to keep".
     public static func review(
         items: [MediaItem],
         signatures: [String: MediaSignatures],
-        options: ClassifierOptions = .default
+        options: ClassifierOptions = .default,
+        preferences: ReviewPreferences = .default
     ) -> [CategoryReview] {
-        let valid = DuplicateDetector.validSignatures(items: items, signatures: signatures)
-        return CategoryReview.build(
-            items: items.map { DuplicateDetector.enriched($0, valid[$0.location.indexKey]) },
-            classifications: classify(items: items, signatures: signatures, options: options),
-            options: options
-        )
+        outcome(items: items, signatures: signatures, options: options).reviews(preferences: preferences)
     }
 
     static func isFlaggedScreenshot(_ item: MediaItem) -> Bool {

@@ -60,7 +60,23 @@ StorageCleaner never deletes anything permanently.
 - **Review screens**: a grid with size badges for each category (Likely to delete / Likely to
   keep), large files and heaviest items; duplicate groups with a side-by-side compare view. Filter
   by size, date and kind; sort by size or date; tap to override any item; bulk select skips
-  favorites, shared and edited items, which are never pre-selected.
+  favorites, shared and edited items, which are never pre-selected. Tiles are fixed-size squares
+  that crop the preview, so no orientation or aspect ratio changes the layout.
+- **Why each item is where it is**: every tile states its verdict ("94% sure · needs 85%",
+  "Protected · Favorite", "Older than 30 days"); long-press (or hover on macOS) and the viewer show
+  the full sentence and the classifier's signals.
+- **Viewer**: tap any preview to open it full screen (a sheet on macOS): zoom and pan photos, play
+  videos and audio, swipe or use the arrow keys between items, and switch Keep / Move to Trash.
+  Previews of iCloud-only items load only when "Download iCloud originals" is on.
+- **Review Rules** (Settings, or the slider button on a category screen), stored in
+  `ReviewPreferences` and applied to the current results right away:
+  - strictness per category: Conservative / Balanced / Aggressive, mapped to the confidence needed
+    for "Likely to delete" (Balanced keeps the built-in thresholds);
+  - pre-selection on or off per category, including extra duplicate copies;
+  - "Always keep receipts newer than N months" and "Screenshots older than N days are likely to
+    delete", both off by default.
+
+  Favorites, shared and edited items stay in "Likely to keep" whatever the rules say.
 - **Confirm sheet**: shows the exact count and total size, split into Photos (Recently Deleted,
   30 days, with the system's own prompt) and iCloud Drive files (Trash). The confirmation echoes
   those numbers, so a changed selection moves nothing.
@@ -100,5 +116,10 @@ open StorageCleaner.xcodeproj
 `StorageCleaner.xcodeproj` is generated from `project.yml`. After adding targets or changing build
 settings, run `xcodegen generate` (`brew install xcodegen`) and commit both files; CI fails if they
 drift. Adding or removing Swift files under existing folders also needs a regenerate.
+
+Debug builds accept `-demo` (optionally `-demoScreen grid|videos|duplicates|viewer|confirm|rules`)
+to show a generated sample library from the app's temporary folder in an in-memory index; CI uses it
+for iOS Simulator screenshots (the `ios-screenshots` artifact). `scripts/make-app-icon.py` renders
+the app icon.
 
 To run on a device, pick your team under Signing & Capabilities. The app needs Photos "Full Access".

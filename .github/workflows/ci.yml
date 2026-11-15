@@ -74,3 +74,64 @@ jobs:
             -project "$PROJECT" -scheme "$SCHEME" \
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO
+
+  ios-screenshots:
+    name: iOS Simulator screenshots (demo data)
+    needs: safety-guard
+    runs-on: macos-latest
+    continue-on-error: true
+    env:
+      PROJECT: StorageCleaner.xcodeproj
+      SCHEME: StorageCleaner
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Pick and boot an iPhone simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          devices = json.load(sys.stdin)["devices"]
+          runtimes = sorted((r for r in devices if "iOS" in r), reverse=True)
+          for runtime in runtimes:
+              for d in devices[runtime]:
+                  if d["name"].startswith("iPhone") and "Pro" in d["name"] and "Max" not in d["name"]:
+                      print(d["udid"]); sys.exit()
+          for runtime in runtimes:
+              for d in devices[runtime]:
+                  if d["name"].startswith("iPhone"):
+                      print(d["udid"]); sys.exit()
+          ')
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Build for the simulator (Debug, demo mode available)
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project "$PROJECT" -scheme "$SCHEME" -configuration Debug \
+            -destination "id=$UDID" -derivedDataPath build/sim \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO
+
+      - name: Capture screens in light and dark mode
+        run: |
+          APP=$(find build/sim/Build/Products/Debug-iphonesimulator -maxdepth 1 -name '*.app' | head -n 1)
+          BUNDLE=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 \
+            --cellularBars 4 --wifiBars 3 || true
+          mkdir -p screenshots
+          for appearance in light dark; do
+            xcrun simctl ui "$UDID" appearance "$appearance"
+            for screen in dashboard grid videos duplicates viewer confirm rules; do
+              xcrun simctl launch --terminate-running-process "$UDID" "$BUNDLE" -demo -demoScreen "$screen"
+              sleep 8
+              xcrun simctl io "$UDID" screenshot "screenshots/$appearance-$screen.png"
+            done
+          done
+          ls -l screenshots
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-screenshots
+          path: screenshots/
